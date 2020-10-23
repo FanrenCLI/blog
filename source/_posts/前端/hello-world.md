@@ -2,7 +2,6 @@
 title: Hello World
 cover: true
 top: true
-img: http://static.blinkfox.com/20181105-io.jpg
 categories:
   - 前端
   - 后端
