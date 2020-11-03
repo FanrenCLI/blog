@@ -19,7 +19,7 @@ author: Fanrencli
 - 边界处理
 
 ### 一维处理
-观察[上篇文章](https://fanrencli.cn/2020/10/27/haar-wavelet/)的代码,其中的一维变换代码``，使用简单的循环处理方法，如下:
+观察[上篇文章](https://fanrencli.cn/2020/10/27/haar-wavelet/)的代码,其中的一维变换代码`haar_dwt`，使用简单的循环处理方法，如下:
 ```python 
 #inputdata: row or column of image
 #outputdata: array handle with haar_wavelet
