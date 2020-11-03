@@ -1,5 +1,5 @@
 ---
-title: Haar Wavelet
+title: Haar Wavelet（1）
 cover: true
 top: true
 categories:
@@ -11,6 +11,8 @@ author: Fanrencli
 ---
 >haar小波变换的图像应用实例
 
+## Haar Wavelet 图片示例
+![Picture resolutions(512*512)](http://39.105.26.229:4567/pic.png)
 ```python
 import numpy as np
 import cv2
