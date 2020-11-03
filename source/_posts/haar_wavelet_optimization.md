@@ -2,6 +2,8 @@
 title: Haar Wavelet（2）
 cover: true
 top: true
+mathjax: true
+markup: mmark
 categories:
   - 小波变换
 tags:
@@ -32,64 +34,64 @@ def haar_dwt(row_or_col):#图片需要为2的次方形状
     return np.append(Low_frequency,High_frequency)
 ```
 显然此种循环处理方法的性能不足，针对这个缺点，本文采用矩阵运算进行代替。首先分析循环的处理过程，转为矩阵方式，如下:
-$$Matrix_{low\_frequency}=
+$$Matrix_{lowfrequency}=
 {1\over \sqrt{2}}
 \begin{pmatrix}
-1&1&0&\cdots&\cdots&0\\
-0&0&1&1&\cdots&0\\
-\vdots&\vdots&\vdots&\vdots&\vdots&\vdots&\\
-0&\cdots&\cdots&0&1&1\\
+1&1&0&\cdots&\cdots&0\\\\
+0&0&1&1&\cdots&0\\\\
+\vdots&\vdots&\vdots&\vdots&\vdots&\vdots&\\\\
+0&\cdots&\cdots&0&1&1\\\\
 \end{pmatrix}（n*{n\over 2}）
 $$
-$$Matrix_{high\_frequency}=
+$$Matrix_{highfrequency}=
 {1\over \sqrt{2}}
 \begin{pmatrix}
-1&-1&0&\cdots&\cdots&0\\
-0&0&1&-1&\cdots&0\\
-\vdots&\vdots&\vdots&\vdots&\vdots&\vdots&\\
-0&\cdots&\cdots&0&1&-1\\
+1&-1&0&\cdots&\cdots&0\\\\
+0&0&1&-1&\cdots&0\\\\
+\vdots&\vdots&\vdots&\vdots&\vdots&\vdots&\\\\
+0&\cdots&\cdots&0&1&-1\\\\
 \end{pmatrix}（n*{n\over 2}）
 $$
 $$
-Low\_frequency=Matrix_{low\_frequency}
+Lowfrequency=Matrix_{lowfrequency}
 \begin{pmatrix}
-x_1\\
-x_2\\
-\vdots\\
-x_n\\
+x_1\\\\
+x_2\\\\
+\vdots\\\\
+x_n\\\\
 \end{pmatrix}
 $$
 $$
-High\_frequency=Matrix_{high\_frequency}
+Highfrequency=Matrix_{highfrequency}
 \begin{pmatrix}
-x_1\\
-x_2\\
-\vdots\\
-x_n\\
+x_1\\\\
+x_2\\\\
+\vdots\\\\
+x_n\\\\
 \end{pmatrix}
 $$
 $$
-img_{row\_or\_col}=
+img_{roworcol}=
 \begin{pmatrix}
-Low\_frequency\\
-High\_frequency\\
+Lowfrequency\\\\
+Highfrequency\\\\
 \end{pmatrix}
 $$
-由此分析，针对代码进行优化，将矩阵构造处理抽取出来作为一个函数`Create_haar_matrix`，这样便于以后根据图像分辨率进行构建矩阵，并且将$Matrix_{low\_frequency}$与$Matrix_{high\_frequency}$合成为一个矩阵T,有以下的运算过程:
+由此分析，针对代码进行优化，将矩阵构造处理抽取出来作为一个函数`Create_haar_matrix`，这样便于以后根据图像分辨率进行构建矩阵，并且将$Matrix_{lowfrequency}$与$Matrix_{highfrequency}$合成为一个矩阵T,有以下的运算过程:
 $$
 T=
 \begin{pmatrix}
-Matrix_{low\_frequency}\\
-Matrix_{high\_frequency}\\
+Matrix_{lowfrequency}\\\\
+Matrix_{highfrequency}\\\\
 \end{pmatrix}
 $$
 $$
-img_{row\_or\_col}=T
+img_{roworcol}=T
 \begin{pmatrix}
-x_1\\
-x_2\\
-\vdots\\
-x_n\\
+x_1\\\\
+x_2\\\\
+\vdots\\\\
+x_n\\\\
 \end{pmatrix}
 $$
 代码如下:
@@ -134,22 +136,22 @@ def haar_dwt2D(img):
 ```
 此处代码，分行列分别进行运算，由一维变换过程:
 $$
-img_{row\_or\_col}=T
+img_{roworcol}=T
 \begin{pmatrix}
-x_1\\
-x_2\\
-\vdots\\
-x_n\\
+x_1\\\\
+x_2\\\\
+\vdots\\\\
+x_n\\\\
 \end{pmatrix}
 $$
 对此进行拓展得到：
 $$
 img=T\cdot
 \begin{pmatrix}
-x_{11}&x_{12}&\cdots&x_{1n}\\
-x_{21}&\ddots&&\vdots\\
-\vdots&&\ddots&\vdots\\
-x_{n1}&\cdots&\cdots&x_{nn}\\
+x_{11}&x_{12}&\cdots&x_{1n}\\\\
+x_{21}&\ddots&&\vdots\\\\
+\vdots&&\ddots&\vdots\\\\
+x_{n1}&\cdots&\cdots&x_{nn}\\\\
 \end{pmatrix}
 $$
 进而代码如下：
@@ -182,10 +184,10 @@ def haar_dwt2D(img):
 $$
 img_{pic}=
 \begin{pmatrix}
-x_{11}&x_{12}&\cdots&x_{1n}\\
-x_{21}&\ddots&&\vdots\\
-\vdots&&\ddots&\vdots\\
-x_{n1}&\cdots&\cdots&x_{nn}\\
+x_{11}&x_{12}&\cdots&x_{1n}\\\\
+x_{21}&\ddots&&\vdots\\\\
+\vdots&&\ddots&\vdots\\\\
+x_{n1}&\cdots&\cdots&x_{nn}\\\\
 \end{pmatrix}
 $$
 $$
@@ -274,10 +276,10 @@ def haar_dwt2D(img):
 $$
 img_{pic}=
 \begin{pmatrix}
-x_{11}&x_{12}&\cdots&x_{1m}\\
-x_{21}&\ddots&&\vdots\\
-\vdots&&\ddots&\vdots\\
-x_{n1}&\cdots&\cdots&x_{nm}\\
+x_{11}&x_{12}&\cdots&x_{1m}\\\\
+x_{21}&\ddots&&\vdots\\\\
+\vdots&&\ddots&\vdots\\\\
+x_{n1}&\cdots&\cdots&x_{nm}\\\\
 \end{pmatrix}
 $$
 $$
@@ -375,12 +377,8 @@ if __name__ == '__main__':
     cv2.waitKey(0)
 ```
 注意考虑到代码的适用性，本文的代码仅可以压缩一次。若需要连续压缩，需要将需要压缩的图片数据单独取出，重新输入，考虑到代码的适用性，以后再做更新。即以下的形式不正确：
-```pyhon
+```python
 if __name__ == '__main__':
-    #读取网络图片（2选1）
-    # file_pic=requests.get('http://39.105.26.229:4567/pic.png')
-    # img= cv2.imdecode(np.fromstring(file_pic.content, np.uint8), 0).astype(np.float64)
-    #读取本地图片（2选1）
     img= cv2.imread("pic.png",0).astype(np.float64)
     img=haar_dwt2D(img)
     cv2.imshow('asd',img)
@@ -400,26 +398,26 @@ if __name__ == '__main__':
 > 压缩后的每一个图像像素点仅与压缩前的2x2矩阵中的信息相关，所以针对这一特性，我们只需要给出4个不同的卷积核，分别对应于$LL,LH,HL,HH,$这四个图像。本文针对Haar wavelet,给出以下四个卷积矩阵：
 > $$LL= {1\over 2}
 \begin{pmatrix}
-1&1\\
-1&1\\
+1&1\\\\
+1&1\\\\
 \end{pmatrix}
 >$$
 >$$HH= {1\over 2}
 \begin{pmatrix}
-1&-1\\
--1&1\\
+1&-1\\\\
+-1&1\\\\
 \end{pmatrix}
 >$$
 > $$HL= {1\over 2}
 \begin{pmatrix}
-1&-1\\
-1&-1\\
+1&-1\\\\
+1&-1\\\\
 \end{pmatrix}
 >$$
 > $$HL= {1\over 2}
 \begin{pmatrix}
-1&1\\
--1&-1\\
+1&1\\\\
+-1&-1\\\\
 \end{pmatrix}
 >$$
 >其中HL和LH的顺序可能不对，尚未验证。通过给出的四个卷积核，通过对图像进行卷积运算得出四个矩阵，即使haar wavelet的压缩结果。
