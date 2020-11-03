@@ -1,5 +1,5 @@
 ---
-title: Haar Wavelet（1）
+title: Haar Wavelet（2）
 cover: true
 top: true
 categories:
