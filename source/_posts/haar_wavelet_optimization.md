@@ -1,5 +1,6 @@
 ---
 title: Haar Wavelet（2）
+date: 2020-10-23 12:33:49
 top: true
 mathjax: true
 markup: mmark
