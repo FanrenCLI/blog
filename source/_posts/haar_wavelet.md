@@ -7,6 +7,7 @@ categories:
 tags:
   - Haar Wavelet
   - python
+  - Fanrencli
 author: Fanrencli
 ---
 >haar小波变换的图像应用实例
