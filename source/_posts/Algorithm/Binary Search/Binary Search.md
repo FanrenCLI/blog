@@ -35,11 +35,11 @@ public:
     void Search(TreeNode* root) {
         fun(root);
     }
-    void pre_order(TreeNode* root){
+    void middle_order(TreeNode* root){
         if (root==nullptr) return;
-        pre_order(root->left);
+        middle_order(root->left);
         cout << root->val << endl;
-        pre_order(root->right);
+        middle_order(root->right);
     }
 };
 ```
@@ -50,10 +50,10 @@ public:
     void Search(TreeNode* root) {
         fun(root);
     }
-    void pre_order(TreeNode* root){
+    void post_order(TreeNode* root){
         if (root==nullptr) return;
-        pre_order(root->left);
-        pre_order(root->right);
+        post_order(root->left);
+        post_order(root->right);
         cout << root->val << endl;
     }
 };
