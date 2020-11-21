@@ -1,15 +1,14 @@
 ---
 title: Haar Wavelet（2）
-cover: true
 top: true
 mathjax: true
 markup: mmark
 categories:
   - 小波变换
-  - Fanrencli
 tags:
   - Haar Wavelet
   - Python
+  - Fanrencli
 author: Fanrencli
 ---
 >haar小波变换的图像应用实例（优化）

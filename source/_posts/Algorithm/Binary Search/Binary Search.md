@@ -1,14 +1,14 @@
 ---
-title: Algorithm
-cover: true
+title: 算法
 top: true
+cover: true
 categories:
   - Algorithm
-  - Fanrencli
 tags:
   - C++
   - Binary Search
-author: Farencli
+  - Fanrencli
+author: Fanrencli
 ---
 > 二叉树专题（`Binary Search`）
 > 二叉树作为算法经典题型，应用范围广，需要及其重视。

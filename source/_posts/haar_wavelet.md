@@ -1,6 +1,5 @@
 ---
 title: Haar Wavelet（1）
-cover: true
 top: true
 categories:
   - 小波变换
