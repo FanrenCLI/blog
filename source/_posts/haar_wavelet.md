@@ -5,7 +5,7 @@ categories:
   - 小波变换
 tags:
   - Haar Wavelet
-  - python
+  - Python
   - Fanrencli
 author: Fanrencli
 ---
