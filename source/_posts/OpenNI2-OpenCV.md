@@ -2,6 +2,7 @@
 title: OpenNI2_OpenCV
 date: 2020-12-06 09:24:37
 top: true
+cover: true
 mathjax: true
 markup: mmark
 categories:
@@ -37,7 +38,7 @@ CFLAGS = ${shell pkg-config opencv --cflags}
 LDFLAGS = ${shell pkg-config opencv --libs}
 
 ```
-其中`pkg-config`需要在系统中配置`opencv.pc`文件，文件内容，在安装的文件中可以找到，若没有则可能默认没有生成(opencv4之后的版本默认不生成)，需要在编译的时候设置。
+其中`pkg-config`需要在系统中配置`opencv.pc`文件，文件内容，在安装的文件中可以找到，若没有则可能默认没有生成（opencv4之后的版本默认不生成），需要在编译的时候设置。
 
 `opencv`环境配置没有问题后，在orbbec提供的OpenNI2的文件中示例代码中进行整合开发。文件位置在：
 ```sh
