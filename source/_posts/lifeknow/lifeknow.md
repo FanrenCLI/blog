@@ -2,7 +2,7 @@
 title: lifeknow
 date: 2020-12-24 11:11:56
 categories:
-   -Life Know
+    - Life Know
 ---
 ### Life, you know what?
 <p style="text-indent:2em">
