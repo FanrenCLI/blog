@@ -1,8 +1,6 @@
 ---
 title: OpenNI2_OpenCV
 date: 2020-12-06 09:24:37
-top: true
-cover: true
 mathjax: true
 markup: mmark
 categories:
