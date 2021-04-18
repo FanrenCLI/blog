@@ -2,7 +2,6 @@
 title: jsis3d
 date: 2021-02-06 19:50:17
 top: true
-cover: true
 categories:
   - Deep Learning
 tags:
@@ -94,8 +93,8 @@ author: Fanrencli
 ```
 针对以上代码可以在理解的基础上进行修改。结果图展示：
 
-![wenjian](http://39.105.26.229:4567/1.png)
-![wenjian](http://39.105.26.229:4567/2.png)
+![结果图](http://39.105.26.229:4567/1.png)
+![数据图](http://39.105.26.229:4567/2.png)
 
 > **注意**:论文中针对S3DIS数据集，以区域1,2,3,4,6作为训练集，区域5作为测试集 
 
