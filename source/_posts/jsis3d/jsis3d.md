@@ -1,7 +1,6 @@
 ---
 title: jsis3d
 date: 2021-02-06 19:50:17
-top: true
 categories:
   - Deep Learning
 tags:
