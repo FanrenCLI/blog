@@ -12,7 +12,7 @@ tags:
 author: Fanrencli
 ---
 
-## 深度学习之语义分割SegNet
+## 深度学习之语义分割SegNet(2015)
 
 ### what is SegNet?
 
@@ -196,3 +196,87 @@ def resnet50_segnet( n_classes ,  input_height=416, input_width=416 , encoder_le
 根据以上的代码，我们很容易看出，解码部分对应于编码的部分，通过不断的上采样将特征放大到原来图片的1/2的大小然后输出分类。
 至此，关于`SegNet`代码的所有内容就基本讲完了，下一张会讲解医学影像处理常用的语义分割网络`U-net`。
 
+##2021年4月23日再次更新
+
+在`SegNet`网络中，之前的代码在编码和解码的过程中没有考虑池化索引这个特点，直接通过池化和上采样层进行操作，没有添加池化索引。在实际的训练过程中，不添加池化索引这个特点有可能会导致loss值在训练过程中不太稳定，不过在运用过程中不会造成太大误差。不过在这里还是补上池化索引的功能，关于池化索引的相关特点可以百度一下。
+
+代码如下：
+```python
+from keras.engine import Layer
+import keras.backend as K
+
+class MaxPoolingWithArgmax2D(Layer):
+    def __init__(self, pool_size=(2, 2), strides=(2, 2), padding='same', **kwargs):
+        super(MaxPoolingWithArgmax2D, self).__init__(**kwargs)
+        self.padding = padding
+        self.pool_size = pool_size
+        self.strides = strides
+
+    def call(self, inputs, **kwargs):
+        padding = self.padding
+        pool_size = self.pool_size
+        strides = self.strides
+        if K.backend() == 'tensorflow':
+            ksize = [1, pool_size[0], pool_size[1], 1]
+            padding = padding.upper()
+            strides = [1, strides[0], strides[1], 1]
+            output, argmax = K.tf.nn.max_pool_with_argmax(inputs, ksize=ksize, strides=strides, padding=padding)
+        else:
+            errmsg = '{} backend is not supported for layer {}'.format(K.backend(), type(self).__name__)
+            raise NotImplementedError(errmsg)
+        argmax = K.cast(argmax, K.floatx())
+        return [output, argmax]
+
+    def compute_output_shape(self, input_shape):
+        ratio = (1, 2, 2, 1)
+        output_shape = [dim // ratio[idx] if dim is not None else None for idx, dim in enumerate(input_shape)]
+        output_shape = tuple(output_shape)
+        return [output_shape, output_shape]
+
+    def compute_mask(self, inputs, mask=None):
+        return 2 * [None]
+
+
+class MaxUnpooling2D(Layer):
+    def __init__(self, up_size=(2, 2), **kwargs):
+        super(MaxUnpooling2D, self).__init__(**kwargs)
+        self.up_size = up_size
+
+    def call(self, inputs, output_shape=None):
+        updates, mask = inputs[0], inputs[1]
+        with K.tf.variable_scope(self.name):
+            mask = K.cast(mask, 'int32')
+            input_shape = K.tf.shape(updates, out_type='int32')
+            #  calculation new shape
+            if output_shape is None:
+                output_shape = (input_shape[0], input_shape[1] * self.up_size[0], input_shape[2] * self.up_size[1], input_shape[3])
+
+            # calculation indices for batch, height, width and feature maps
+            one_like_mask = K.ones_like(mask, dtype='int32')
+            batch_shape = K.concatenate([[input_shape[0]], [1], [1], [1]], axis=0)
+            batch_range = K.reshape(K.tf.range(output_shape[0], dtype='int32'), shape=batch_shape)
+            b = one_like_mask * batch_range
+            y = mask // (output_shape[2] * output_shape[3])
+            x = (mask // output_shape[3]) % output_shape[2]
+            feature_range = K.tf.range(output_shape[3], dtype='int32')
+            f = one_like_mask * feature_range
+
+            # transpose indices & reshape update values to one dimension
+            updates_size = K.tf.size(updates)
+            indices = K.transpose(K.reshape(K.stack([b, y, x, f]),[4, updates_size]))
+            values = K.reshape(updates, [updates_size])
+            ret = K.tf.scatter_nd(indices, values, output_shape)
+            return ret
+
+    def compute_output_shape(self, input_shape):
+        mask_shape = input_shape[1]
+        return (mask_shape[0], mask_shape[1] * self.up_size[0], mask_shape[2] * self.up_size[1], mask_shape[3])
+```
+在此处自定义了下采样代码和上采样的代码，在实际的运用中，需要将池化和上采样的代码替换为上文的代码。形如：
+
+```python
+    o = MaxPoolingWithArgmax2D()(input)
+    o2 = MaxUnpooling2D()(o)
+```
+
+其中`o`输出的是输出层和对应的`argmax`参数，对应的上采样层输入就是池化层的输出和索引参数。
