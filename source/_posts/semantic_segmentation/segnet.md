@@ -280,3 +280,7 @@ class MaxUnpooling2D(Layer):
 ```
 
 其中`o`输出的是输出层和对应的`argmax`参数，对应的上采样层输入就是池化层的输出和索引参数。
+
+### loss函数
+
+在`SegNet`模型中，预测值是经过解码后的特征层的一维序列，对应的真实值就是图片ground truth的一维序列，在loss函数的设计中，本文采用了标准的交叉熵CE作为`SegNet`的loss函数。

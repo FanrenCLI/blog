@@ -88,6 +88,9 @@ def mobilenet_unet( n_classes ,  input_height=224, input_width=224 , encoder_lev
 	model =  _unet( n_classes , get_mobilenet_encoder ,  input_height=input_height, input_width=input_width  )
 	return model
 ```
+### loss函数
+
+在`U-net`模型中，预测值是经过解码后的特征层的一维序列，对应的真实值就是图片ground truth的一维序列，在loss函数的设计中，本文采用了标准的交叉熵CE作为`U-net`的loss函数。
 
 至此，`U-net`相关的代码就介绍完成了，在后期会针对已经介绍的网络进行不断更新。
 
