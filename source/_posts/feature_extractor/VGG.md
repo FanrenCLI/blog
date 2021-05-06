@@ -1,8 +1,6 @@
 ---
 title: VGG
 date: 2021-04-18 14:06:34
-top: true
-cover: true
 categories:
 - Deep Learning
 tags:

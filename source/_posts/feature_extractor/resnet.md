@@ -1,8 +1,6 @@
 ---
 title: ResNet
 date: 2021-04-18 13:19:58
-top: true
-cover: true
 categories:
     - Deep Learning
 tags:
