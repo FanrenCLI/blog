@@ -19,10 +19,10 @@ author: Fanrencli
 ### VGG16
 ```python
 class VGG16(nn.Module):
-    def __init__(self,input_channel,num_classes):
+    def __init__(self,num_classes):
         super(VGG16,self).__init__()
         #input_shape(3,224,224)
-        self.conv1 = nn.Conv2d(input_channel,64,kernel_size=3,padding =1,stride=1)
+        self.conv1 = nn.Conv2d(3,64,kernel_size=3,padding =1,stride=1)
         self.relu1 = nn.ReLU()
         self.conv2 = nn.Conv2d(64,64,kernel_size=3,padding =1,stride=1)
         self.relu2 = nn.ReLU()
@@ -40,9 +40,9 @@ class VGG16(nn.Module):
         self.relu6 = nn.ReLU()
         self.conv7 = nn.Conv2d(256,256,kernel_size=3,padding =1,stride=1)
         self.relu7 = nn.ReLU()
-        self.maxpool3 = nn.MaxPool2d(kernel=2,stride=2)
+        self.maxpool3 = nn.MaxPool2d(kernel_size=2,stride=2)
 
-        self.conv8 = nn.Con2d(256,512,kernel_size=3,padding =1,stride=1)
+        self.conv8 = nn.Conv2d(256,512,kernel_size=3,padding =1,stride=1)
         self.relu8 = nn.ReLU()
         self.conv9 = nn.Conv2d(512,512,kernel_size=3,padding =1,stride=1)
         self.relu9 = nn.ReLU()
@@ -115,24 +115,24 @@ class VGG16(nn.Module):
 ### ResNet101
 ```python
 class Conv_block(nn.Module):
-    def __init__(self,input_channel,filters,strides=2):
+    def __init__(self,input_channel,filters,stride=2):
         super(Conv_block,self).__init__()
-        self.conv1 = nn.Conv2D(input_channel,filters[0],kernel_size=1,strides = strides,bias=True)
+        self.conv1 = nn.Conv2d(input_channel,filters[0],kernel_size=1,stride = stride,bias=True)
         self.batch1 = nn.BatchNorm2d(filters[0])
         self.relu1 = nn.ReLU()
 
-        self.conv2 = nn.Conv2d(filters[0],filters[1],kernel_size=3,strides=1,padding =1,bias =True)
+        self.conv2 = nn.Conv2d(filters[0],filters[1],kernel_size=3,stride=1,padding =1,bias =True)
         self.batch2 = nn.BatchNorm2d(filters[1])
         self.relu2 = nn.ReLU()
 
-        self.conv3 = nn.Conv2d(filters[1],filters[2],kernel_size=1,strides=1,padding =1,bias =True)
+        self.conv3 = nn.Conv2d(filters[1],filters[2],kernel_size=1,stride=1,bias =True)
         self.batch3 = nn.BatchNorm2d(filters[2])
 
-        self.conv4 = nn.Conv2d(input_shape,filters[2],kernel_size=1,strides=strides,padding =1,bias =True)
+        self.conv4 = nn.Conv2d(input_channel,filters[2],kernel_size=1,stride=stride,bias =True)
         self.batch4 = nn.BatchNorm2d(filters[2])
 
-        slef.relu3 = nn.ReLU()
-    def forward(slef,x):
+        self.relu3 = nn.ReLU()
+    def forward(self,x):
         shortcut = x
         x = self.conv1(x)
         x = self.batch1(x)
@@ -147,18 +147,20 @@ class Conv_block(nn.Module):
         x +=shortcut
         x = self.relu3(x)
         return x
+```
+```python
 class Identity_block(nn.Module):
     def __init__(self,input_channel,filters):
         super(Identity_block,self).__init__()
-        self.conv1 = nn.Conv2D(input_channel,filters[0],kernel_size=1,padding=1,strides=1,bias=True)
+        self.conv1 = nn.Conv2d(input_channel,filters[0],kernel_size=1,stride=1,bias=True)
         self.batch1 = nn.BatchNorm2d(filters[0])
         self.relu1 = nn.ReLU()
         
-        self.conv2 = nn.Conv2D(filters[0],filters[1],kernel_size=3,padding=1,strides=1,bias=True)
+        self.conv2 = nn.Conv2d(filters[0],filters[1],kernel_size=3,padding=1,stride=1,bias=True)
         self.batch2 = nn.BatchNorm2d(filters[1])
         self.relu2 = nn.ReLU()
 
-        self.conv3 = nn.Conv2D(filters[1],filters[2],kernel_size=1,padding=1,strides=1,bias=True)
+        self.conv3 = nn.Conv2d(filters[1],filters[2],kernel_size=1,stride=1,bias=True)
         self.batch3 = nn.BatchNorm2d(filters[2])
 
         self.relu3 = nn.ReLU()
@@ -176,18 +178,20 @@ class Identity_block(nn.Module):
         x +=shortcut
         x = self.relu3(x)
         return x
+```
+```python
 class ResNet101(nn.Module):
     def __init__(self,num_classes):
         super(ResNet101,self).__init__()
         self.model1 = nn.Sequential(
-            nn.Conv2D(3,64,kernel_size=7,padding=3,strides=2,bias=True),
+            nn.Conv2d(3,64,kernel_size=7,padding=3,stride=2,bias=True),
             nn.BatchNorm2d(64),
             nn.ReLU(),
-            nn.MaxPool2d(kernel_size=3,strides=2,padding=1)
+            nn.MaxPool2d(kernel_size=3,stride=2,padding=1)
             
         )
         self.model2 = nn.Sequential(
-            Conv_block(64,[64,64,256],strides=1),
+            Conv_block(64,[64,64,256],stride=1),
             Identity_block(256,[64,64,256]),
             Identity_block(256,[64,64,256])
         )
@@ -213,18 +217,27 @@ class ResNet101(nn.Module):
             nn.ReLU(),
             nn.Linear(1024,num_classes)
         )
-        def forward(self,x):
-            c1 = x = self.model1(x)
-            c2 = x = self.model2(x)
-            c3 = x = self.model3(x)
-            x = self.conv1(x)
-            for i in range(22):
-                x = self.loop_identity(x)
-            c4 = x
-            c5 = x = self.model4(x)
-            x = self.avgpool(x)
-            x = x.view(x.size(0),-1)
-            x = self.model5(x)
-            return c1,c2,c3,c4,c5,x
+    def forward(self,x):
+        c1 = x = self.model1(x)
+        c2 = x = self.model2(x)
+        c3 = x = self.model3(x)
+        x = self.conv1(x)
+        for i in range(22):
+            x = self.loop_identity(x)
+        c4 = x
+        c5 = x = self.model4(x)
+        x = self.avgpool(x)
+        x = x.view(x.size(0),-1)
+        x = self.model5(x)
+        return c1,c2,c3,c4,c5,x
 ```
 针对重新构建的代码，读者可自行对照前文的代码，感受不同框架之间的差异和优缺点。
+为了方便读者自行测试代码，一下给出一些简易的测试代码，有助于读者了解输出输入的方式
+```python
+net = ResNet101(num_classes=10) # net = VGG16(num_classes=10)
+input = torch.randn(1,3,224,224)
+out = net(input)
+print(net)
+print(out[4].shape)
+
+```
