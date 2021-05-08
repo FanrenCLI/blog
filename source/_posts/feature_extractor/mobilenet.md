@@ -1,8 +1,6 @@
 ---
 title: MobileNet
 date: 2021-04-20 20:17:00
-top: true
-cover: true
 categories:
 - Deep Learning
 tags:
