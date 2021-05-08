@@ -40,9 +40,9 @@ class VGG16(nn.Module):
         self.relu6 = nn.ReLU()
         self.conv7 = nn.Conv2d(256,256,kernel_size=3,padding =1,stride=1)
         self.relu7 = nn.ReLU()
-        self.maxpool3 = nn.MaxPool2d(kernel_size=2,stride=2)
+        self.maxpool3 = nn.MaxPool2d(kernel=2,stride=2)
 
-        self.conv8 = nn.Conv2d(256,512,kernel_size=3,padding =1,stride=1)
+        self.conv8 = nn.Con2d(256,512,kernel_size=3,padding =1,stride=1)
         self.relu8 = nn.ReLU()
         self.conv9 = nn.Conv2d(512,512,kernel_size=3,padding =1,stride=1)
         self.relu9 = nn.ReLU()
@@ -101,7 +101,7 @@ class VGG16(nn.Module):
         x = self.relu13(x)
         x = self.maxpool5(x)
 
-        x = x.view(x.size(0),-1)
+        x = x.view(x.size(0),x.size(1))
         x = self.linear1(x)
         x = self.relu14(x)
         x = self.dropout1(x)
@@ -227,9 +227,10 @@ class ResNet101(nn.Module):
         c4 = x
         c5 = x = self.model4(x)
         x = self.avgpool(x)
-        x = x.view(x.size(0),-1)
+        x = x.view(x.size(0),x.size(1))
         x = self.model5(x)
         return c1,c2,c3,c4,c5,x
+
 ```
 针对重新构建的代码，读者可自行对照前文的代码，感受不同框架之间的差异和优缺点。
 为了方便读者自行测试代码，一下给出一些简易的测试代码，有助于读者了解输出输入的方式

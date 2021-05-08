@@ -33,6 +33,7 @@ class DepthwiseSeparabel(nn.Module):
         x = self.batch2(x)
         x = self.relu2(x)
         return x
+
 ```
 ```python
 class MobileNetv1(nn.Module):
@@ -63,10 +64,11 @@ class MobileNetv1(nn.Module):
     def forward(self,x):
         x = self.model(x)
         x = self.avg(x)
-        x = x.view(x.size(0),-1)
+        x = x.view(x.size(0),x.size(1))
         x = self.drop1(x)
         x = self.linear1(x)
         return x
+
 ```
 
 ### MobileNetv2
@@ -86,7 +88,6 @@ class DepthwiseSeparabel(nn.Module):
         x = self.separable(x)
         x = self.batch2(x)
         return x
-
 ```
 ```python
 class inverted_res_block(nn.Module):
@@ -143,7 +144,7 @@ class MobileNetv2(nn.Module):
         self.fc = nn.Linear(1280,num_classes)
     def forward(self,x):
         x = self.model(x)
-        x = x.view(x.size(0),-1)
+        x = x.view(x.size(0),x.size(1))
         x = self.fc(x)
         return x
 ```
@@ -173,10 +174,9 @@ class squeeze(nn.Module):
     def forward(self,x):
         input_data = x
         x = self.avg(x)
-        x = x.view(x.size(0),-1)
+        x = x.view(input_data.size(0),input_data.size(1))
         x = self.model(x)
-        # when x has been done in the linear layer, x.shape = (1,16),if you want do: x mul input_data,you should do: x.view(x.size(1),1,1)
-        x = x.view(x.size(1),1,1)
+        x = x.view(input_data.size(0),input_data.size(1),1,1)
         return torch.mul(input_data,x)
 ```
 ```python
@@ -243,7 +243,7 @@ class MobileNetv3_small(nn.Module):
         self.linear2 = nn.Linear(1024,num_classes)
     def forward(self,x):
         x = self.model(x)
-        x = x.view(x.size(0),-1)
+        x = x.view(x.size(0),x.size(1))
         x = self.linear1(x)
         x = self.act_fun1(x)
         x = self.linear2(x)
