@@ -8,7 +8,7 @@ categories:
 tags:
 - Inceptionv3
 - Xception
-- pytorch
+- Pytorch
 author: Fanrencli
 ---
 
@@ -343,7 +343,7 @@ class Xception(nn.Module):
         return x
 ```
 
-至此，关于之前所有用`keras`构建的特征提取网络已经全部重构完毕，后续看情况可能会继续更新一下`DenseNet`和其他组合型特征提取网络。emmmmmmm....话说又用了一个上午:-(
+至此，关于之前所有用`keras`构建的特征提取网络已经全部重构完毕，后续看情况可能会继续更新一下`DenseNet`、`ShuffleNet`和其他组合型特征提取网络。emmmmmmm....话说又用了一个上午:-(
 对了，如果有读者想要看一下网络结构的细节部分，此处提供一下代码，此处代码可以进行适当修改，无缝链接到其他文章中的网络。
 ```python
 net = Xception(10)

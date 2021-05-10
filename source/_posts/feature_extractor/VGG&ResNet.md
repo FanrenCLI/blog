@@ -43,9 +43,9 @@ class VGG16(nn.Module):
         self.relu6 = nn.ReLU()
         self.conv7 = nn.Conv2d(256,256,kernel_size=3,padding =1,stride=1)
         self.relu7 = nn.ReLU()
-        self.maxpool3 = nn.MaxPool2d(kernel=2,stride=2)
+        self.maxpool3 = nn.MaxPool2d(kernel_size=2,stride=2)
 
-        self.conv8 = nn.Con2d(256,512,kernel_size=3,padding =1,stride=1)
+        self.conv8 = nn.Conv2d(256,512,kernel_size=3,padding =1,stride=1)
         self.relu8 = nn.ReLU()
         self.conv9 = nn.Conv2d(512,512,kernel_size=3,padding =1,stride=1)
         self.relu9 = nn.ReLU()
