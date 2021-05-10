@@ -1,14 +1,11 @@
 ---
 title: Inception
 date: 2021-04-20 23:39:26
-top: true
-cover: true
 categories:
 - Deep Learning
 tags:
 - Inceptionv3
 - Xception
-- Fanrencli
 author: Fanrencli
 ---
  

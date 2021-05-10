@@ -15,7 +15,10 @@ author: Fanrencli
 
 本文接续前文提到的主干特征提取网络，前文的网络构建主要是基于`keras`框架构建的，而在深度学习领域`pytorch`是当前最流行的框架，且深受顶会论文学者的喜爱。因此，在前文已经给出的`keras`代码的基础上，从这篇文章开始会针对前文网络重新用`pytorch`构建。
 
-再次给出`pytorch`代码，还需要注意的是：不同于`keras`，`pytorch`输入的shape=（3，224，224），通道数在前。
+再次给出`pytorch`代码，还需要注意的是：不同于`keras`，`pytorch`输入的shape=（3，224，224），通道数在前。关于网络的讲解部分，大家参考前期的文章[VGG](http://fanrencli.cn/2021/04/18/feature-extractor/vgg/)、[Resnet](http://fanrencli.cn/2021/04/18/feature-extractor/resnet/)
+
+
+
 ### VGG16
 ```python
 class VGG16(nn.Module):

@@ -12,7 +12,7 @@ author: Fanrencli
 ---
 ## 深度学习神经网络特征提取（六）
 
-本次文章给出`MobileNet`的`Pytorch`版本的代码。
+本次文章给出`MobileNet`的`Pytorch`版本的代码。关于网络的讲解部分，大家参考前期的[文章](http://fanrencli.cn/2021/04/20/feature-extractor/mobilenet/)
 
 ### MobileNetv1
 ```python
@@ -250,3 +250,16 @@ class MobileNetv3_small(nn.Module):
         return x
 ```
 至此，`MobileNet`网络的pytorch版本全部更新。
+对了，如果有读者想要看一下网络结构的细节部分，此处提供一下代码，此处代码可以进行适当修改，无缝链接到其他文章中的网络。
+```python
+net = MobileNet(10)
+net.to(torch.device('cuda'))
+input = torch.randn(10,3,224,224)
+out = net(input)
+#网络结构
+print(net)
+#输出参数
+print(out.shape)
+#网络细节
+summary(net,(3,299,299))
+```
