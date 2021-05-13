@@ -1,14 +1,11 @@
 ---
 title: SegNet
 date: 2021-04-22 14:45:35
-top: true
-cover: true
 categories:
 - Deep Learning
 tags:
 - semantic segmentation
 - SegNet
-- Fanrencli
 author: Fanrencli
 ---
 

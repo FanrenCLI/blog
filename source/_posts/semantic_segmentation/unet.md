@@ -1,14 +1,11 @@
 ---
 title: U-net
 date: 2021-04-23 10:48:06
-top: true
-cover: true
 categories:
 - Deep Learning
 tags:
 - semantic segmentation
 - U-net
-- Fanrencli
 author: Fanrencli
 ---
 
