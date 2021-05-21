@@ -1,8 +1,6 @@
 ---
 title: Mobilnet(pytorch)
 date: 2021-05-08 09:46:42
-top: true
-cover: true
 categories: 
 - Deep Learning
 tags:

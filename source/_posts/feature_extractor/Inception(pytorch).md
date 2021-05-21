@@ -1,8 +1,6 @@
 ---
 title: Inception(pytorch)
 date: 2021-05-09 18:38:08
-top: true
-cover: true
 categories: 
 - Deep Learning
 tags:

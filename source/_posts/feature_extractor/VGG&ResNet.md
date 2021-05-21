@@ -1,8 +1,6 @@
 ---
 title: VGG & ResNet
 date: 2021-05-06 16:26:39
-top: true
-cover: true
 categories: 
 - Deep Learning
 tags:
