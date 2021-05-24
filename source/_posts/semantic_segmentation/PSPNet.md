@@ -1,8 +1,6 @@
 ---
 title: PSPNet
 date: 2021-05-11 21:18:35
-top: true
-cover: true
 categories:
 - Deep Learning
 tags:

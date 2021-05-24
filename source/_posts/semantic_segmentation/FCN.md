@@ -1,8 +1,6 @@
 ---
 title: FCN
 date: 2021-05-10 15:31:42
-top: true
-cover: true
 categories:
 - Deep Learning
 tags:
