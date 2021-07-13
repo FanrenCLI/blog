@@ -18,12 +18,12 @@ author: Fanrencli
 - ResNet网络基础组成：Conv_Block,Identity_Block
 
 在本文中，根据实际的项目要求，构建了RseNet101网络。
-![ResNet网络结构](http://39.105.26.229:4567/20180114205444652.png)
-![ResNet基础Backbone](http://39.105.26.229:4567/20180114184946861.png)
+![ResNet网络结构](http://39.106.34.39:4567/20180114205444652.png)
+![ResNet基础Backbone](http://39.106.34.39:4567/20180114184946861.png)
 
 ### 构建Conv_Block模块
 针对`Conv_Block`模块，我们首先要了解这个模块的具体结构，`Conv_Block`从输入开始分两支分别进行特征提取，以一次卷积、一次归一化、一次`ReLu`激活函数的形式连接三次，并在第一次的卷积层步长为2进行降维，另一分支只进行一次步长为2的卷积、一次归一化，然后将两个分支进行连接，再一次激活函数层完成一次`Conv_Block`，结构如下图：
-![Conv_Block](http://39.105.26.229:4567/20191113094201415.png)
+![Conv_Block](http://39.106.34.39:4567/20191113094201415.png)
 ```python
     def Conv_block(input_feature,kernel_size,filters,strides = (2,2)):
         filter1,filter2,filter3 = filters
@@ -54,7 +54,7 @@ author: Fanrencli
 
 `Identity_Block`模块不同于`Conv_Block`模块，`Identity_Block`模块只对特征进行提取，即只进行深度的堆叠不行进降维，所以在结构上与`Conv_Block`相似——同样是双分支结构，在另一分支上不进行操作，只是将输入与另一分支的结果进行叠加，具体结构如下：
 
-![Identity_Block](http://39.105.26.229:4567/20191113094135752.png)
+![Identity_Block](http://39.106.34.39:4567/20191113094135752.png)
 
 代码如下：
 ```python
