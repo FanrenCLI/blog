@@ -30,6 +30,8 @@ author: Fanrencli
 - 获取最近的修改时间：`long lastModified()`
 - 获取文件名称：`getName()`
 - 输出路径中包含的信息(可能是文件也可能是路径)：`String[] list()` `File[] listFiles()`
+
+
 ```java
 public class Main {
     public static void main(String[] args) throws IOException {
@@ -38,7 +40,6 @@ public class Main {
         System.out.println(file.delete());
     }
 }
-
 ```
 
 ### 字节流与字符流
@@ -48,6 +49,7 @@ public class Main {
 - 关闭资源
 
 #### 字节流
+
 1. `InputStream` 抽象类
 
 	- 读取单个字节并返回数据：`int read() throws IOException`
@@ -134,8 +136,7 @@ public class Main {
 }
 ```
 
-1. `Writer`
-
+2. `Writer`
 
     - 输出全部字符数组：`void write(char[] b) throws IOException`
     - 输出字符串：`void write(String str) throws IOException`

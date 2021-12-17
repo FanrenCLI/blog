@@ -10,6 +10,7 @@ author: Fanrencli
 ## Thread线程
 
 ### 线程创建方式
+
 - 继承`Thread`类
 - 实现`Runnable`接口
 - 实现`Callable`接口,`Callable`接口可以通过实现`call()`方法实现方法运行，并通过`FutureTask`来获取返回结果
@@ -57,7 +58,9 @@ public class test {
     }
 }
 ```
+
 ### 线程的相关操作
+
 - `Thread.sleep()` 使得当前线程休眠一定的时间，是`Thread`的静态函数，不论谁调用`sleep`方法，休眠的总是当前线程。
 - `getPriority()`和`setPriority(int newPriority)`,获取线程的优先级
 - `join()`，通过线程实例对象调用join方法，使得当前线程等待join线程结束
@@ -74,6 +77,8 @@ public class test {
 3. 修饰一个静态的方法，其作用的范围是整个静态方法，作用的对象是这个类的所有对象。
 4. 修饰一个类，其作用的范围是synchronized后面括号括起来的部分，作用的对象是这个类的所有对象。
 5. 总结：被`synchronized`修饰的对象，其所有synchronized方法被锁住，非synchronized方法正常使用。
+
+
 ```java
 // synchronized修饰代码块，只锁定指定的对象的synchronized修饰的代码。this指当前对象，当有线程进入this对应的代码块，则此对象的所有synchronized修饰的代码全部锁住，非synchronized修饰的代码块任然可以进入。
 public class A implements Runnable {

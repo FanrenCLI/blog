@@ -10,6 +10,7 @@ author: Fanrencli
 ## 反射
 
 ### 反射3种实例化方法
+
 1. 使用`实例化对象.getclass()`方法；
 2. `类.class`
 3. 使用`Class.forName(String str)`方法
@@ -57,7 +58,9 @@ public class test1 {
 }
 ```
 ### 通过反射调用构造函数
+
 - `getConstructor(参数类...)` 获取指定的构造函数
+
 ```java
 class C{
     private int a=0;
@@ -74,10 +77,12 @@ public class test1 {
 }
 ```
 ### 通过反射调用普通函数
+
 - `getMethod()`获取指定方法（不包含私有方法）
 - `getDeclaredMethod()`获取指定方法
 - `getMethods()`获取所有方法（不包含私有方法）
 - `getDeclaredMethods()`获取所有方法
+
 ```java
 class C{
     public int get(){
@@ -99,11 +104,14 @@ public class test1 {
     }
 }
 ```
+
 ### 通过反射获取成员变量
+
 - `getField(String str)`获取指定成员（不包含私有）
 - `getDeclaredField(String str)`获取指定成员
 - `getFields(String str)`获取所有成员（不包含私有）
 - `getDeclaredFields(String str)`获取所有成员
+
 ```java
 class C{
     private int a=1;

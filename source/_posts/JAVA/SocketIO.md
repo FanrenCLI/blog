@@ -14,12 +14,14 @@ tags:
 author: Fanrencli
 ---
 ## BIO
+
 - `BIO`即传统的IO操作接口
 - 服务器端：`ServerSocket`
 - 客户端：`Socket`
 
 
 ### 服务器端（ServerSocket）
+
 - 构造方法：`public ServerSocket(int port) throws IOException`
 - 监听客户端连接：`public Socket accept() throws IOException`
 - 取得客户端的数据：`public OutputStream getInputStream() throws IOException`
