@@ -59,10 +59,16 @@ public class test {
 ```
 ### 线程的相关操作
 - `Thread.sleep()` 使得当前线程休眠一定的时间，是`Thread`的静态函数，不论谁调用`sleep`方法，休眠的总是当前线程。
+- `getPriority()`和`setPriority(int newPriority)`,获取线程的优先级
+- `join()`，通过线程实例对象调用join方法，使得当前线程等待join线程结束
+- `yield()`方法使得当前线程让出CPU资源；
+- `interrupt()`通过调用此方法发出一个信号，通常用于在线程阻塞时通知退出阻塞；
 - `Object.wait()` 作为`Object`对象的方法，用于休眠当前线程，通过线程的对象调用，并放弃当前持有的锁，必须在`synchronized`中使用。
 - `Object.notify[all]()` 作为`Object`对象的方法，用于唤醒等待此对象的线程，必须在`synchronized`中使用。
-- 
+
+
 ### Synchronized关键字作用
+
 1. 修饰一个代码块，被修饰的代码块称为同步语句块，作用的对象是调用这个代码块的对象。
 2. 修饰一个方法，被修饰的方法称为同步方法，作用的对象是调用这个方法的对象。
 3. 修饰一个静态的方法，其作用的范围是整个静态方法，作用的对象是这个类的所有对象。
@@ -136,6 +142,4 @@ public class Main {
         new Thread(()->a.say(b)).start();
         b.say(a);
     }
-
 ```
-
