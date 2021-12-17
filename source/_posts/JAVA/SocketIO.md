@@ -17,6 +17,8 @@ author: Fanrencli
 - `BIO`即传统的IO操作接口
 - 服务器端：`ServerSocket`
 - 客户端：`Socket`
+
+
 ### 服务器端（ServerSocket）
 - 构造方法：`public ServerSocket(int port) throws IOException`
 - 监听客户端连接：`public Socket accept() throws IOException`
@@ -57,6 +59,8 @@ public class Main {
 - 构造方法：`public Socket(String IP, int port) throws IOException`
 - 取得服务器的数据：`public OutputStream getInputStream() throws IOException`
 - 向服务器发送数据`public OutputStream getOutputStream() throws IOException`
+
+
 ```java
 public class test1 {
     public static void main(String[] args) throws Exception {
@@ -86,10 +90,12 @@ public class test1 {
     }
 }
 ```
+
 ### 多线程解决BIO带来的问题
 
 - BIO即阻塞IO，如果仅用单线程处理，那么只允许一个客户链接服务器，要实现多个客户链接，就需要采用多线程处理
-- 
+
+
 ```java
 class test implements Runnable{
     private Socket clientsocket;
@@ -133,7 +139,9 @@ public class BIO_ThreadPool {
     }
 }
 ```
+
 ## NIO
+
 - 网络编程主要分为5种IO模型：
     - 阻塞型IO（BIO）:当请求的数据没有准备好时，则一直等待；常用于计算（CPU）密集型；
     - 非阻塞型IO（NIO）:当请求的数据没有准备好时，则返回一个错误，然后再发送请求；
@@ -172,6 +180,7 @@ public class NIO {
 ```
 
 ### NIO服务器端
+
 ```java
 public class NIO {
     public static void main(String[] args) throws IOException{
