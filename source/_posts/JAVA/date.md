@@ -9,9 +9,13 @@ tags:
   - Calendar
 author: Fanrencli
 ---
+
 ## Date
+
 - 构造方法：new Date(long time) 将long型数据转为日期
 - 普通方法：getTime(),返回一个long型日期
+
+
 ```java
     // 输出日期
     Date date= new Date();
@@ -20,6 +24,7 @@ author: Fanrencli
 ```
 
 ## SimpleDateFormat类型用于日期的格式转换
+
 - 构造函数：`new SimpleDateFormat("日期格式")`
 - Date转String：`String Format(Date date)`
 - String转Date：`Date prase(String str)`
@@ -38,9 +43,12 @@ public class test {
 ```
 
 ## Calendar日期类型主要用于计算
+
 - 构造函数私有化
 - 静态方法取得实例对象：getInstance()
 - 静态属性：YEAR，MONTH，DAY_OF_MONTH，HOUR_OF_DAY，MINUTE，SECOND
+
+
 ```java
 public class test {
     public static void main(String[] args) throws ParseException {
