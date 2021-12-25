@@ -54,17 +54,106 @@ class A implements Callable<String>{
 public class test {
     public static void main(String[] args) {
         FutureTask<String> futureTask = new FutureTask<>(new A());
-        new Thread(futureTask);
+        new Thread(futureTask).start();
     }
 }
 ```
 
+### 线程池相关操作
+
+- Future和FutureTask
+- 线程池的创建
+- 线程拒绝策略
+
+#### Future 和 FutureTask
+
+- Future常常作为线程池中submit方法的返回值的接收，可以通过调用get()方法获取线程返回值；
+- FutureTask类实现了Runnable和Future接口，其构造函数可以接收Runnable和Callable实现类，然后可以通过线程池的submit或者execute方法进行运行,也可以直接通过Thread运行，最后可以调用get方法获取返回值；
+
+
+```java
+class A implements Callable<String> {
+    @Override
+    public String call() throws Exception {
+        return "ok";
+    }
+}
+class B implements Runnable{
+    @Override
+    public void run() {
+        System.out.println("ok");
+    }
+}
+public class Main {
+    public static void main(String[] args) throws ExecutionException, InterruptedException {
+        FutureTask<String> futureTask = new FutureTask<>(new A());
+        new Thread(futureTask).start();
+        FutureTask<String> futureTask1 = new FutureTask<>(new B(),"backinfo");
+        new Thread(futureTask1).start();
+        System.out.println(futureTask1.get());
+        System.out.println(futureTask.get());
+    }
+}
+```
+
+```java
+ExecutorService service = Executors.newSingleThreadExecutor();
+Future<String> future = service.submit(new Callable<String>() {
+    @Override
+    public String call() throws Exception {
+        return "say helloWorld!!!";
+    }
+});
+System.out.println(future.get());// 通过get返回结果
+
+```
+#### 线程池的创建
+
+- `newCachedThreadPool`：重用以前线程，无可用则创建，空闲则移除；
+- `newFixedThreadPool(int size)`：创建指定大小的线程池。通过队列管理
+- `newScheduledThreadPool(int size)`:可以设置运行几次以及时间间隔
+- `newSingleThreadExecutor`：创建只有一个线程的线程池，这个线程池可以在线程死后（或发生异常时）重新启动一个线程来替代原来的线程继续执行下去
+- 线程池的运行方法有两种：
+    - submit：返回一个future类型，可以获取返回值
+    - execute：直接运行，无返回值
+
+```java
+ExecutorService pool = Executors.newFixedThreadPool(taskSize);
+List<Future> list = new ArrayList<Future>(); 
+for (int i = 0; i < taskSize; i++) { 
+    Callable c = new MyCallable(i + " "); 
+    Future f = pool.submit(c); 
+    list.add(f); 
+} 
+for (int i = 0; i < taskSize; i++) { 
+    Runnable c = new Myrunnable(i + " "); 
+    Future f = pool.submit(c,:"backInfo"); 
+    list.add(f); 
+} 
+pool.shutdown(); 
+for (Future f : list) { 
+    System.out.println("res：" + f.get().toString()); 
+    }
+```
+
+#### 线程拒绝策略
+
+<p style="text-indent:2em">
+线程池中的线程已经用完了，无法继续为新任务服务，同时，等待队列也已经排满了，再也塞不下新任务了。这时候我们就需要拒绝策略机制合理的处理这个问题。
+</p>
+
+- `AbortPolicy`：直接抛出异常，阻止系统正常运行。 
+- `CallerRunsPolicy`：只要线程池未关闭，该策略直接在调用者线程中，运行当前被丢弃的任务。显然这样做不会真的丢弃任务，但是，任务提交线程的性能极有可能会急剧下降。 
+- `DiscardOldestPolicy`：丢弃最老的一个请求，也就是即将被执行的一个任务，并尝试再次提交当前任务。 
+- `DiscardPolicy`：该策略默默地丢弃无法处理的任务，不予任何处理。如果允许任务丢失，这是最好的一种方案。 
+- 以上内置拒绝策略均实现了RejectedExecutionHandler接口，若以上策略仍无法满足实际需要，完全可以自己扩展RejectedExecutionHandler接口。
+
 ### 线程的相关操作
 
-- `Thread.sleep()` 使得当前线程休眠一定的时间，是`Thread`的静态函数，不论谁调用`sleep`方法，休眠的总是当前线程。
+- `Thread.sleep()` 使得当前线程休眠一定的时间，放弃CPU使用权，但是不会放弃资源锁，是`Thread`的静态函数，不论谁调用`sleep`方法，休眠的总是当前线程。
 - `getPriority()`和`setPriority(int newPriority)`,获取线程的优先级
 - `join()`，通过线程实例对象调用join方法，使得当前线程等待join线程结束
-- `yield()`方法使得当前线程让出CPU资源；
+- `Thread.yield()`方法使得当前线程让出CPU资源；
 - `interrupt()`通过调用此方法发出一个信号，通常用于在线程阻塞时通知退出阻塞；
 - `Object.wait()` 作为`Object`对象的方法，用于休眠当前线程，通过线程的对象调用，并放弃当前持有的锁，必须在`synchronized`中使用。
 - `Object.notify[all]()` 作为`Object`对象的方法，用于唤醒等待此对象的线程，必须在`synchronized`中使用。

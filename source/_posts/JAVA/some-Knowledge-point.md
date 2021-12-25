@@ -252,9 +252,35 @@ public class Main {
 
 ```
 
+### 泛型
 
+```java
+public class B<T>{
+    private T b;
+    // 这个不是泛型方法
+    public T getB() { 
+        return this.b;
+    }
+    public void set(B<? extends  > b) {
 
-
+    }
+    // 这个才是泛型方法
+    public <S> S get(S str){
+        return str;
+    }
+}
+public class B<T extends Number>{
+    private T b;
+    // 这个不是泛型方法
+    public T getB() { 
+        return this.b;
+    }
+    // 这个才是泛型方法
+    public <S> S get(S str){
+        return str;
+    }
+}
+```
 
 
 

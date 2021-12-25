@@ -194,6 +194,9 @@ public class Main {
     - 取出全部的Key：`public Set<K> keySet()`
 - 常用子类：`HashMap`（key或value可以为空，线程不安全）,`HashTable`（key和value不能为空，线程安全）
 - 无序存储，内容覆盖
+- 针对`HashMap`的线程安全问题引出`ConcurrentHashMap`,`ConcurrentHashMap` 是一个 `Segment` 数组，`Segment` 通过继承 `ReentrantLock` 来进行加锁，所以每次需要加锁的操作锁住的是一个`segment`，这样只要保证每个 `Segment` 是线程安全的，也就实现了全局的线程安全。
+
+
 
 ```java
 public class Main {
