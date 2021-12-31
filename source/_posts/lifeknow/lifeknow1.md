@@ -35,10 +35,6 @@ categories:
 ![香山夜景](http://39.106.34.39:4567/5329f51ab6247a8a9727e3260aef908.jpg)
 ![香山夜景](http://39.106.34.39:4567/812fad9217ebead78391a2ca747fca8.jpg)
 
-<video id="video" controls="" preload="none" poster="http://39.106.34.39:4567/_20211231205448.png">
-<source id="mp4" src="http://39.106.34.39:4567/7537aa3811fb2b3265be120d10c92ba7.mp4" type="video/mp4">
-</video>
-
 
 
 
