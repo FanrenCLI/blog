@@ -26,10 +26,11 @@ author: Fanrencli
 - 查看版本：`docker version`
 - 搜索镜像：`docker search mysql`:INDEX（仓库地址）|NAME（仓库名称）|STARS（喜欢程度）|OFFICIAL（是否是官方）|UTOMATED（是否提供dockerfile）
 - 镜像加速器：使用阿里云加速配置
+- 查看容器启动日志：`docker logs -f --details -t ID/Name`
+
 
 ## Dockerfile文件
 
- 
 
 ```shell
 基础环境
