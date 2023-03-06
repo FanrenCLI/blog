@@ -237,3 +237,30 @@ public class Main {
         b.say(a);
     }
 ```
+
+### ThreadLocal详解
+
+由于一个java项目中经常需要多线程操作且线程的创建与销毁都会产生CPU开销，所以在代码开发过程中，常用线程池进行多线程的操作。因此存在大量的线程复用的情况，一个线程的生命周期较长。在Thread线程的类中
+```java
+class Thread{
+    ThreadLocal.ThreadLocalMap map = null;
+}
+class ThreadLocal{
+    // 静态内部类
+    static class ThreadLocalMap{
+        // 静态内部类采用弱引用
+        static class Entry extends WeakReference<ThreadLocal<?>>{
+
+        }
+    }
+}
+class Demo{
+    // threadlocal使用时首先初始化一个ThreadLocal对象，然后通过set方法进行数据存储，从而达到线程之间隔离的效果
+    // 此时，在这个线程中就会存在一个ThreadLocalMap<ThreadLocal,Integer>,其中key为创建的threadlocal对象，value为设置的值，
+    // 使用完后，如果没有remove，就会导致内存泄漏的问题，
+    ThreadLocal<Integer> threadlocal = ThreadLocal.withinit(()=>{ return 0;});
+    threadlocal.set(1);
+    threadlocal.get();
+    threadlocal.remove();
+}
+```

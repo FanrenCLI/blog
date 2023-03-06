@@ -4,6 +4,7 @@ date: 2021-12-20 17:26:18
 categories:
   - JAVA
 tags:
+  - JVM
   - GC
 author: Fanrencli
 ---
@@ -12,9 +13,9 @@ author: Fanrencli
 
 ![JVM内存模型](http://39.106.34.39:4567/20200101151338500.png)
 
-- 堆：（new）对象存储，数组；
-- 方法区：类的加载信息、常量、静态变量、即时编译后的代码；
-- 程序计数器：每个线程私有的标记代码的运行位置；
+- 堆：（new）对象存储，数组（在jdk7后字符串常量、静态变量）；
+- 方法区：类的加载信息、常量、即时编译后的代码；
+- 程序计数器：每个线程在这里都会私有一个标记代码的运行位置；
 - 虚拟机栈：存储每个方法运行创建的栈帧（局部变量表(对象的引用（对C++中的指针的封装）、基础数据类型)、操作数栈、动态链接、方法出口）；
 - 本地方法栈：存储本地方法的服务；
 
@@ -25,6 +26,30 @@ author: Fanrencli
 - 标记-整理：先标记，将活着的对象移动向一端，然后按照边界进行清除
 - 分代收集：将内存划分为年轻代和老年代，不同的区域选择不同的算法，一般年轻代选择复制，老年代选择清除或者整理
 
+### HotSpot JVM
+
+作为主流的JVM，HotSpot虚拟机采用分代收集的方法，分为老年代和新生代。其中新生代使用标记-复制方法进行垃圾回收，从而将新生代分为Eden和Survivor1和Survivor0三个部分，其中Eden占比较大，如果Eden满了就进行minorGC，将活着的对象放入Survivor中空着的区域，清空Eden和另一个Survivor区域。大对象可能直接进入老年代。
+- minorGC：Eden满了会触发minorGC,Survivor满了不会触发，收集整个新生代的垃圾，会触发STW。
+- majorGC:收集整个老年代的垃圾，老年代空间不足就会触发
+- FullGC：收集整个java堆和方法区的垃圾
+
+![JVM对象分配过程](http://39.106.34.39:4567/jvm_pic1.jpg)
+
+常用的JVM参数设置：
+- -XX:+PrintFlagsInitial:查看所有的参数的默认初始值
+- -XX:PrintFlagsFinal:查看所有的参数的最终值
+- -Xms:初始堆空间大小（默认1/64)
+- -Xmx:最大对空间大小（默认1/4）
+- -Xmn:设置新生代的大小（初始值及最大值）
+- -XX:NewRaito:配置新生代和老年代再对结构的占比
+- -XX:SurvivorRatio：设置新生代中的Eden和S0、S1空间的比例
+- -XX:MaxTenuringThreshold:设置新生代垃圾的最大年龄
+- -XX:+PrintGCDetails:输出详细的GC处理日志
+- -XX:+PrintGC：打印GC简要信息
+- -XX:HandlePromotionFailure:是否设置空间分配担保
+
+对象的分配不一定都在堆上分配，首先通过逃逸分析，如果这个对象只在此方法中使用，则认为没有逃逸，就在栈中分配内存，随着方法销毁。
+TLAB的出现是由于堆内空间共享，如果多个线程同时创建对象申请空间就会存在竞争，此时通过给每个线程分配一个TLAB的空间，这样就不需要竞争空间了，TLAB在空间上是私有的，但是内部的对象是共享的。
 ### 确定垃圾
 
 - 引用计数法：如果一个对象没有一个与之相关的引用，那么他的引用计数都为0，此时可以当作垃圾进行回收
@@ -47,14 +72,36 @@ author: Fanrencli
 ### 垃圾收集算法具体实现（垃圾收集器）
 
 - Serial垃圾收集器（单线程、复制算法）
-- Serial Old收集器（单线程标记整理算法 ）
+- Serial Old收集器（单线程标记整理算法）
 - ParNew垃圾收集器（Serial+多线程）
 - Parallel Scavenge收集器（多线程复制算法、高效）
 - Parallel Old收集器（多线程标记整理算法）
 - CMS收集器（多线程标记清除算法）
 - G1收集器
 
+### 四种引用类型
 
+- 强引用：如果一个对象与GC Roots之间存在强引用，则称这个对象为强可达对象，例如：String asd = new String("");
+- 软引用：软引用是使用SoftReference创建的引用，强度弱于强引用，被其引用的对象在内存不足的时候会被回收，不会产生内存溢出。
+```java
+  String s = new String("AABB");    // 创建强引用与String对象关联，现在该String对象为强可达状态
+  SoftReference<String> softRef = new SoftReference<String>(s);     // 再创建一个软引用关联该对象
+  s = null;        // 消除强引用，现在只剩下软引用与其关联，该String对象为软可达状态
+  s = softRef.get();  // 重新关联上强引用
+```
+- 弱引用：在发生GC时，只要发现弱引用，不管系统堆空间是否足够，都会将对象进行回收。
+```java
+  String s = new String("Frank");    
+  WeakReference<String> weakRef = new WeakReference<String>(s);
+  s = null;
 
+```
+- 虚引用：当垃圾回收器准备回收一个对象时，如果发现它还有虚引用，就会在垃圾回收后，将这个虚引用加入引用队列，在其关联的虚引用出队前，不会彻底销毁该对象。 所以可以通过检查引用队列中是否有相应的虚引用来判断对象是否已经被回收了。
+```java
 
+ private static final ReferenceQueue<Student> QUEUE = new ReferenceQueue<>();
+ PhantomReference<Student> phantomReference = new PhantomReference<>(new Student(), QUEUE);
+ System.out.println(phantomReference.get());
+
+```
 

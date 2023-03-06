@@ -15,8 +15,40 @@ author: Fanrencli
 
 ### 四种注入方式
 
+Spring中会将所有添加上注解的类自动生成Bean来管理，注解包括：@service/@component/@controller等，
+而Bean的注入，除非xml文件中配置，或者@Autowire/@Resource/@Quality等注解标识，否则根本不会进行装配，而构造器不需要添加@Autowire是因为其中如果只有一个有参构造器，就只能使用这个构造器去实例化，从而附带进行了装配。实例化Bean的时候，针对类中的属性如果需要装配可以通过两个来源：1.Ioc中的Bean，通过setter进行配置属性。
+
+注意：普通实体类中get set方法是为了防止直接访问数据，不是为了spring而提供，但是spring顺便使用了
+
 - 构造器注入
-- setter注入
+    1. 如果有多个构造器，其中没有无参构造则报错，有则使用无参构造器
+    2. 如果只有一个构造器，那就使用其初始化
+    3. 如果有多个构造器，其中某一个添加了@Autowire,就使用其，多个添加则把报错
+```java
+@Controller
+public class UserController {
+
+    private final UserService userService;
+
+    public UserController(UserService userService){
+        this.userService = userService;
+    }
+
+}
+```
+- setter注入：在DAO中表现为get/set方法，在其他对象中表现为通过@Autowire注入对象
+```java
+@Controller
+public class UserController {
+
+    private UserService userService;
+
+    @Autowired
+    public void setUserService(UserService userService){
+        this.userService = userService;
+    }
+}
+```
 - 静态工厂
 - 实例工厂
 
