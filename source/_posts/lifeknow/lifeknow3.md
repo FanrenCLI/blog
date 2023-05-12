@@ -3,7 +3,6 @@ title: Third Year
 date: 2022-10-01 8:44:00
 categories:
     - Life Know
-    - Economic Knowledge
 ---
 <p style="text-indent:2em;text-align:center;font-weight:bold">
 善于捕捉他人者，常迷失于自己。
