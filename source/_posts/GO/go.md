@@ -1,4 +1,12 @@
-
+---
+title: GoLang
+date: 2023-06-22 14:11:00
+categories:
+  - Go
+tags:
+  - Go knowledge
+author: Fanrencli
+---
 
 ```go
 package main

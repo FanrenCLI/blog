@@ -1,6 +1,6 @@
 ---
 title: FreeFire
-date: 2022-10-25 14:11:00
+date: 2023-06-22 14:11:00
 categories:
   - JAVA
 tags:
@@ -41,7 +41,9 @@ author: Fanrencli
                 └─freefire
 ```
 ### 代码记录
+
 - 切面请求拦截代码
+
 ```java
 package com.example.freefire.aspector;
 import com.alibaba.fastjson.JSON;
@@ -93,7 +95,9 @@ public class MehtodAspect {
     }
 }
 ```
+
 - 配置文件代码
+
 ```java
 package com.example.freefire.configurator;
 import org.apache.catalina.connector.Connector;
@@ -101,19 +105,18 @@ import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactor
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
-
 // 通过此配置文件统一扫描需要注入容器的bean
 @Configuration
 @ComponentScan(basePackages = {
         "com.example.freefire"
 })
 public class FreeFireConfiguration {
-}
-
+    }
 ```
+
 - spring.factories文件
+
 ```java
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
 com.example.freefire.configurator.FreeFireConfiguration
-
 ```
