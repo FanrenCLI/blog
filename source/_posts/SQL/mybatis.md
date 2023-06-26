@@ -9,7 +9,7 @@ author: Fanrencli
 ---
 
 ### 批量查询
-```xml
+```sql
 <select id="" parameterType="" resultType="">
     select id,name,code
     from Tablename
@@ -21,7 +21,7 @@ author: Fanrencli
 ```
 
 ### 删除数据
-```xml
+```sql
 <delete databaseId='mysql' id=''>
     delete a.id from TBALENAME a,TABLENAME2 b
     where a.id=b.id
@@ -29,7 +29,7 @@ author: Fanrencli
 ```
 
 ### 连表新增
-```xml
+```sql
 <insert databaseId='mysql' id = 'MethodName'>
     INSERT INTO TABLE1(
         id,
@@ -49,7 +49,7 @@ author: Fanrencli
 ```
 
 ### 多表更新
-```xml
+```sql
 <update id=''>
     UPDATE TABLENAME tb1
     <set>
@@ -66,7 +66,7 @@ author: Fanrencli
 
 
 ### 批量更新
-```xml
+```sql
 <update id="updateBatch"  parameterType="java.util.List">  
     <foreach collection="list" item="item" index="index" open="" close="" separator=";">
         update course
@@ -78,7 +78,7 @@ author: Fanrencli
 </update>
 ```
 
-```xml
+```sql
 <update databaseId='oracle'>
     <foreach collection='rows' item='item' index='index' open='begin' close=';end;' separator=';'>
         merge into jc_torganization a
@@ -94,7 +94,7 @@ author: Fanrencli
 </update>
 ```
 
-```xml
+```sql
 <update id="TableName" parameterType="list">
     update TableName
     <trim prefix="set" suffixOverrides=",">
@@ -125,7 +125,7 @@ author: Fanrencli
 
 #### GROUP BY
 - select语句查询的字段如果没有使用聚合函数，必须出现在group by后，否则报错
-```xml
+```sql
 <select>
 select a.id,a.name,a.code,max(a.count),max(a.date) from TABLE a
 where a.id=xxx
@@ -135,7 +135,7 @@ group a.id,a.name,a.code
 
 #### NULL或空
 - 更新数据时，针对字符串数据需要判断为空或NULL（oracle将''或NULL都认为是NULL，mysql允许为''）
-```xml
+```sql
 <update datebaseid='oracle'>
 update TABLENAME a
 SET
@@ -158,7 +158,7 @@ where a.id=xxx
 ```
 
 #### where 不能使用列假名,where语句先于假名出现执行
-```xml
+```sql
 <select>
 select id, 10 count from TABLENAME
 where count>1
@@ -166,21 +166,21 @@ where count>1
 ```
 
 #### where不能使用聚合函数
-```xml
+```sql
 <select>
 select id, 10 count from TABLENAME
 where sum(id) =10
 </select>
 ```
 #### having用于集合函数的过滤
-```xml
+```sql
 <select>
 select id, 10 count from TABLENAME
 having sum(id) =10
 </select>
 ```
 #### row_number() over(Partition by xxx order by xxx)使用方法
-```xml
+```sql
 <select>
 select id,name,code, row_number() over(partition by id,name order by code) rn
 from tablename
@@ -201,7 +201,7 @@ from tablename
 
 #### SQL执行顺序,解释了为何where不能够使用别名
 
-```xml
+```sql
     From Table1,Table2
     join Table3 on ...
     where ...
@@ -211,17 +211,24 @@ from tablename
     order by ...
     limit ...
 ```
+#### 表字段操作
+```sql
 
+```
+#### 存储函数
+```sql
+
+```
 #### 存储过程
-```xml
-<!-- 示例 -->
+```sql
+-- 示例
     delimiter $ 定义结束符号
     create procedure select_all_data(in name1 varchar(20),out sex1 varchar(10))
     begin
         select sex into sex1 from users where name = name1;
     end $
     delimiter ; 防止冲突，重新定义
-<!-- 上面定义了一个存储过程 -->
+-- 上面定义了一个存储过程 
     set @name1= "lj"
     call select_all_data(@name1,@sex1);
     select @sex1 from dual;
@@ -229,7 +236,7 @@ from tablename
 
 #### 外键约束
 
-```xml
+```sql
 CREATE TABLE IF NOT EXISTS test1(
     id int primary key,
     `name` varchar(10) not null DEFAULT('') UNIQUE,
@@ -243,7 +250,7 @@ CREATE table test2(
 ```
 
 #### Oracle批量插入
-```xml
+```sql
 insert all into Student(id,name,sex)
 into Student(id,name,sex) values ('004','zs','男')
 into Student(id,name,sex) values ('005','lk','男')
