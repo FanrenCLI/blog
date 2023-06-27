@@ -213,7 +213,14 @@ from tablename
 ```
 #### 表字段操作
 ```sql
-
+-- 修改字段
+alter table table_name modify[add] [column] field_name int not null default 0;
+-- 修改字段名
+alter table table_name change [column] oldname newname varchar(255);
+-- 修改表名
+alter table tablename1 rename to tablename2;
+-- 删除字段
+alter table table_name drop column field_name;
 ```
 #### 存储函数
 ```sql
