@@ -249,11 +249,31 @@ CREATE TABLE IF NOT EXISTS test1(
     `name` varchar(10) not null DEFAULT('') UNIQUE,
     sex TINYINT not null DEFAULT('1')
 );
+CREATE TABLE IF NOT EXISTS test1(
+    id int,
+    `name` varchar(10) not null DEFAULT('') UNIQUE,
+    sex TINYINT not null DEFAULT('1'),
+    CONSTRAINT pk_test5_id PRIMARY KEY(id)
+);
+-- CONSTRAINT 用于设置名称
+CREATE TABLE IF NOT EXISTS test1(
+    id int,
+    `name` varchar(10) not null DEFAULT('') UNIQUE,
+    sex TINYINT not null DEFAULT('1'),
+    PRIMARY KEY(id)
+);
 CREATE table test2(
     id int PRIMARY key,
     relation_id int not null UNIQUE,
     CONSTRAINT uk_f_id FOREIGN key (relation_id) REFERENCES test1 (id)
 )
+-- 查询表的约束 主键名称永远都是primary
+select * from information_schema.table_constraints
+where table_name = 'test2'
+-- 新增逐渐
+alter table test1 add primary key (id)
+-- 删除主键
+alter table test1 drop primary key;
 ```
 
 #### Oracle批量插入
