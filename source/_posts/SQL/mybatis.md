@@ -224,7 +224,29 @@ alter table table_name drop column field_name;
 ```
 #### 存储函数
 ```sql
-
+delimiter $ 定义结束符号
+create function myfuntion(user_id int)
+return varchar(50)
+begin
+    declare out_user_id varchar(50)
+    select out_user into out_user_id from table1 where user_id = user_id;
+    return out_user_id;
+end$
+delimiter ; 定义结束符号
+select myfunction("22")；
+```
+#### 触发器
+```sql
+show triggers;
+drop trigger if exist trigger_name;
+delimiter $ 定义结束符号
+create trigger before_insert_test1_tri
+before insert on test1
+for each row
+begin
+insert into test1() values ()
+end$
+delimiter ; 定义结束符号
 ```
 #### 存储过程
 ```sql
