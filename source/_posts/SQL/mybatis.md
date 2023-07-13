@@ -305,3 +305,50 @@ into Student(id,name,sex) values ('004','zs','男')
 into Student(id,name,sex) values ('005','lk','男')
 select '006','ws','女' from dual;
 ```
+
+### 窗口函数
+
+- ROW_NUMBER() over( partition by id order by name)
+
+| id | name | code | rn |
+| :-----| :----- | :----- | :----- |
+| 1 | a | 1 |1 |
+| 1 | a | 2 |2 |
+| 1 | a | 5 |3 |
+| 2 | b | 2 |1 |
+| 2 | b | 12 |2 |
+| 3 | c | 2 |1 |
+| 3 | c | 12 |2 |
+| 3 | c | 232 |3 |
+| 3 | c | 1123 |4 |
+| 4 | d | 2 |1 |
+
+- RANK() over( partition by id order by name)
+
+| id | name | code | rn |
+| :-----| :----- | :----- | :----- |
+| 1 | a | 1 |1 |
+| 1 | a | 2 |1 |
+| 1 | a | 5 |3 |
+| 2 | b | 2 |1 |
+| 2 | b | 12 |1 |
+| 3 | c | 2 |1 |
+| 3 | c | 12 |1 |
+| 3 | c | 232 |1 |
+| 3 | d | 1123 |4 |
+| 4 | d | 2 |1 |
+
+- DENSE_RANK() over( partition by id order by name)
+
+| id | name | code | rn |
+| :-----| :----- | :----- | :----- |
+| 1 | a | 1 |1 |
+| 1 | a | 2 |1 |
+| 1 | a | 5 |2 |
+| 2 | b | 2 |1 |
+| 2 | b | 12 |1 |
+| 3 | c | 2 |1 |
+| 3 | c | 12 |1 |
+| 3 | c | 232 |1 |
+| 3 | d | 1123 |2 |
+| 4 | d | 2 |1 |
