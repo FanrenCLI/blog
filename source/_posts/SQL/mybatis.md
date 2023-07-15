@@ -199,7 +199,7 @@ from tablename
 | 3 | c | 1123 |4 |
 | 4 | d | 2 |1 |
 
-#### SQL执行顺序,解释了为何where不能够使用别名
+#### SQL执行顺序,解释了为何where不能够使用`列的`别名
 
 ```sql
     From Table1,Table2
@@ -291,6 +291,7 @@ CREATE table test2(
 )
 -- 查询表的约束 主键名称永远都是primary
 select * from information_schema.table_constraints
+select * from information_schema.tables
 where table_name = 'test2'
 -- 新增逐渐
 alter table test1 add primary key (id)
