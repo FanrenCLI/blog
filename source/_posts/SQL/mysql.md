@@ -59,3 +59,27 @@ revoke all privileges on *.* to 'manage'@'localhost';
 -- 删除角色
 drop role 'manage';
 ```
+#### SQL执行流程
+
+```sql
+-- 首先执行一条sql语句
+select * from table1;
+-- 查看profiles
+show profiles;
+-- 选择具体的一条sql执行流程
+show profile for query 1;
+```
+
+#### 存储引擎
+
+-- 存储引擎innodb引擎在5.7版本分为.frm和.idb两个文件进行数据存储，8.0之后改为.idb一个文件存储。innodb存储引擎支持事务，数据库奔溃恢复，以及行级锁，列锁，但是内存要求高
+-- MyISAM存储引擎在5.7版本分为.frm,.MYI,.MYD三个文件存储数据，8.0之后改为.sdi,.MYI,.MYD三个文件，不支持事务，和崩溃恢复，但是针对count(*)查询速度快，访问速度快
+
+```sql
+-- 查看引擎
+show engines;
+-- 查看系统默认的存储引擎
+show variables like "%storage_engine%";
+-- 查看数据存储路径
+show variables like 'datadir';
+```
