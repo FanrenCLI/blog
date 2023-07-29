@@ -83,3 +83,23 @@ show variables like "%storage_engine%";
 -- 查看数据存储路径
 show variables like 'datadir';
 ```
+
+#### 索引
+- 查看索引
+```sql
+show index from table1
+```
+
+- 创建普通索引
+```sql
+create table table1(
+  id int,
+  name varchar(10),
+  addr varchar(10),
+  [unique index|index] id_name(id)
+)
+-- 显示创建索引
+alter table table1 add index index_name(column_name)
+alter table table1 add unique index index_name(column_name1,column_name1)
+create index index_name on table1(column_name);
+```
