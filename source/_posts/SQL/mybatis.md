@@ -123,6 +123,8 @@ author: Fanrencli
 ```
 ### 问题
 
+#### Oracle列名和表明可以使用双引号，但是字符串需要使用单引号
+
 #### GROUP BY
 - select语句查询的字段如果没有使用聚合函数，必须出现在group by后，否则报错
 ```sql
@@ -210,93 +212,6 @@ from tablename
     select xxx
     order by ...
     limit ...
-```
-#### 表字段操作
-```sql
--- 修改字段
-alter table table_name modify[add] [column] field_name int not null default 0;
--- 修改字段名
-alter table table_name change [column] oldname newname varchar(255);
--- 修改表名
-alter table tablename1 rename to tablename2;
--- 删除字段
-alter table table_name drop column field_name;
-```
-#### 存储函数
-```sql
-delimiter $ 定义结束符号
-create function myfuntion(user_id int)
-return varchar(50)
-begin
-    declare out_user_id varchar(50)
-    select out_user into out_user_id from table1 where user_id = user_id;
-    return out_user_id;
-end$
-delimiter ; 定义结束符号
-select myfunction("22")；
-```
-#### 触发器
-```sql
-show triggers;
-drop trigger if exist trigger_name;
-delimiter $ 定义结束符号
-create trigger before_insert_test1_tri
-before insert on test1
-for each row
-begin
-insert into test1() values ()
-end$
-delimiter ; 定义结束符号
-```
-#### 存储过程
-```sql
--- 示例
-    delimiter $ 定义结束符号
-    create procedure select_all_data(in name1 varchar(20),out sex1 varchar(10))
-    begin
-        select sex into sex1 from users where name = name1;
-    end $
-    delimiter ; 防止冲突，重新定义
--- 上面定义了一个存储过程 
-    set @name1= "lj"
-    call select_all_data(@name1,@sex1);
-    select @sex1 from dual;
-```
-
-#### 外键约束
-
-```sql
-CREATE TABLE IF NOT EXISTS test1(
-    id int primary key,
-    `name` varchar(10) not null DEFAULT('') UNIQUE,
-    sex TINYINT not null DEFAULT('1')
-);
-CREATE TABLE IF NOT EXISTS test1(
-    id int,
-    `name` varchar(10) not null DEFAULT('') UNIQUE,
-    sex TINYINT not null DEFAULT('1'),
-    CONSTRAINT pk_test5_id PRIMARY KEY(id)
-);
--- CONSTRAINT 用于设置名称
-CREATE TABLE IF NOT EXISTS test1(
-    id int,
-    `name` varchar(10) not null DEFAULT('') UNIQUE,
-    sex TINYINT not null DEFAULT('1'),
-    PRIMARY KEY(id)
-);
-CREATE table test2(
-    id int PRIMARY key,
-    relation_id int not null UNIQUE,
-    CONSTRAINT uk_f_id FOREIGN key (relation_id) REFERENCES test1 (id)
-)
--- 查询表的约束 主键名称永远都是primary
-select * from information_schema.table_constraints
-select * from information_schema.tables
-where table_name = 'test2'
--- 新增逐渐
-alter table test1 add primary key (id)
--- 删除主键
-alter table test1 drop primary key;
 ```
 
 #### Oracle批量插入
