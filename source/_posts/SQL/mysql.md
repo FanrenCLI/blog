@@ -153,11 +153,22 @@ drop role 'manage';
 ```sql
 -- 首先执行一条sql语句
 select * from table1;
+-- 确定profiling是否开启
+show variables like 'profiling'
 -- 查看profiles
 show profiles;
 -- 选择具体的一条sql执行流程
-show profile for query 1;
+show profile [参数] for query 1;
 ```
+参数：
+- ALL:查看所有开销
+- BLOCK IO:磁盘IO
+- CONTEXT SWITCHES:上下文切换
+- CPU:CPU的开销
+- IPC:显示发送和接受的开销信息
+- MEMORY：显示内存的开销
+
+
 
 #### 存储引擎
 
@@ -198,3 +209,40 @@ create index index_name on table1(column_name);
 alter table table1 drop index index_name(column_name)
 drop index index_name on table1;
 ```
+
+#### 查看系统性能参数
+
+```sql
+show [session|global] status like '参数'
+```
+参数：
+- Connections:连接数据库的次数
+- Uptime:mysql服务器上线的时间
+- Slow_query:慢查询的次数
+- Innodb_rows_read:select查询返回的行数
+- Innodb_rows_insert:执行insert插入的行数
+- Innodb_rows_update:执行update更新的行数
+- Innodb_rows_delete:执行delete删除的行数
+- Com_select:查询操作的次数
+- Com_update:更新操作的次数
+- Com_insert:插入操作的次数
+- Com_delete:删除操作的次数
+- last_query_cost:最后一次查询的成本
+
+#### 慢查询
+
+```sql
+-- 查看慢查询是否开启
+show variables like 'slow_query_log'
+-- 开启慢查询
+set @@slow_query_log = on
+-- 查看慢查询日志文件的存放地址
+show variables like 'slow_query_log_file'
+-- 修改慢查询的时间阈值
+show variables like 'long_query_time
+```
+
+- 通过mysql自带的分析工具分析慢查询的日志文件：mysqldumpslow [参数] /usr/mysql/slow.log
+
+
+
