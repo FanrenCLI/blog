@@ -209,6 +209,23 @@ create index index_name on table1(column_name);
 alter table table1 drop index index_name(column_name)
 drop index index_name on table1;
 ```
+- Explain分析
+
+```sql
+-- 分析sql语句（传统方式）
+explain select * from table1 where id = '1';
+-- JSON方式
+explain format=JSON select * from table1 where id='1';
+-- 运行以上的语句后，查询优化器执行的真实sql
+show warnings;
+```
+- id:数字对应了sql语句中有几个select关键字，当然有时候mysql会对sql语句进行优化，优化后的select关键字可能有减少
+- explain执行之后的记录数对应着涉及到的表的数量（包含临时表）
+- Explain分析的sql执行语句只要关注三个部分：type,key,row
+- type:sql语句执行的类型，通常分为：system>const>eq_ref>ref>range>index>all,
+- key:sql语句执行所用到的真正的索引，区别于possible key
+- row:sql语句执行所涉及到的行数，越少越好
+
 
 #### 查看系统性能参数
 
@@ -245,4 +262,68 @@ show variables like 'long_query_time
 - 通过mysql自带的分析工具分析慢查询的日志文件：mysqldumpslow [参数] /usr/mysql/slow.log
 
 
+#### Mysql调优
 
+- 索引情况
+
+```sql
+-- 查询冗余索引（比如对于 name 字段创建了一个单列索引，有创建了一个 name 和 code 的联合索引）
+select * from sys.schema_redundant_indexes;
+
+-- 查询未使用过的索引
+select * from sys.schema_unused_indexes;
+
+-- 查询索引的使用情况
+select index_name,rows_selected,rows_inserted,rows_updated,rows_deleted 
+from sys.schema_index_statistics where table_schema='dbname' ;
+```
+
+- 表相关
+
+```sql
+-- 查询表的访问量
+select table_schema,table_name,sum(io_read_requests+io_write_requests) as io from
+sys.schema_table_statistics group by table_schema,table_name order by io desc;
+
+-- 查询占用bufferpool较多的表
+select object_schema,object_name,allocated,data
+from sys.innodb_buffer_stats_by_table order by allocated limit 10;
+
+-- 查看表的全表扫描情况
+select * from sys.statements_with_full_table_scans where db='dbname';
+```
+
+- 语句相关
+
+```sql
+-- 监控SQL执行的频率
+select db,exec_count,query from sys.statement_analysis
+order by exec_count desc;
+
+-- 监控使用了排序的SQL
+select db,exec_count,first_seen,last_seen,query
+from sys.statements_with_sorting limit 1;
+
+-- 监控使用了临时表或者磁盘临时表的SQL
+select db,exec_count,tmp_tables,tmp_disk_tables,query
+from sys.statement_analysis where tmp_tables>0 or tmp_disk_tables >0
+order by (tmp_tables+tmp_disk_tables) desc
+
+```
+
+- IO相关
+
+```sql
+-- 查看消耗磁盘IO的文件
+select file,avg_read,avg_write,avg_read+avg_write as avg_io
+from sys.io_global_by_file_by_bytes order by avg_read limit 10;
+```
+
+- Innodb相关
+
+```sql
+
+-- 行锁阻塞
+select * from sys.innodb_lock_waits;
+
+```
