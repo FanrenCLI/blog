@@ -327,3 +327,20 @@ from sys.io_global_by_file_by_bytes order by avg_read limit 10;
 select * from sys.innodb_lock_waits;
 
 ```
+
+- 示例：假如有（id,name）联合索引
+
+```sql
+-- 按照最左前缀原则只能使用到id索引，如果没有索引下推，则回表找到所有符合id like '3%'的数据的name列，然后一一对比是否符合'lujie'，找到所有符合的数据之后再次回表获取所有的列返回结果
+-- 索引下推的存在，知道索引中包含name字段，所以会直接在索引中进行比对，找到最终的符合的结果然后回表找到所有的结果返回，减少了一次回表的时间，从某种意义上来讲也是用到了联合索引的全部字段，虽然是另一种形式。
+select * from stu where id like '3%' and name ='lujie'
+
+```
+
+- 索引失效的几大情况：
+
+    - 不符合最左前缀原则
+    - 在语句中使用了计算/函数/类型自动转换
+    - 使用了范围range|!=|<>|is not null|like "%xxx"
+    - OR前后存在非索引的列
+    - 数据库的字符集不匹配
