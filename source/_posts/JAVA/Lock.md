@@ -24,7 +24,8 @@ author: Fanrencli
 - Contention List：竞争队列，所有请求锁的线程首先被放在这个竞争队列中； 
 - Entry List：Contention List中那些有资格成为候选资源的线程被移动到Entry List中； 
 - OnDeck：任意时刻，最多只有一个线程正在竞争锁资源，该线程被成为OnDeck； 
-- Owner：当前已经获取到所资源的线程被称为Owner； 6) !Owner：当前释放锁的线程。
+- Owner：当前已经获取到所资源的线程被称为Owner； 
+- !Owner：当前释放锁的线程。
 
 ![Synchronized实现原理](http://39.106.34.39:4567/20211222223047.png)
 
