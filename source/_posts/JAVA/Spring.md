@@ -24,6 +24,8 @@ Spring中会将所有添加上注解的类自动生成Bean来管理，注解包�
     1. 如果有多个构造器，其中没有无参构造则报错，有则使用无参构造器
     2. 如果只有一个构造器，那就使用其初始化
     3. 如果有多个构造器，其中某一个添加了@Autowire,就使用其，多个添加则把报错
+
+
 ```java
 @Controller
 public class UserController {
@@ -33,10 +35,11 @@ public class UserController {
     public UserController(UserService userService){
         this.userService = userService;
     }
-
 }
 ```
+
 - setter注入：在DAO中表现为get/set方法，在其他对象中表现为通过@Autowire注入对象
+
 ```java
 @Controller
 public class UserController {
@@ -49,6 +52,7 @@ public class UserController {
     }
 }
 ```
+
 - 静态工厂
 - 实例工厂
 
