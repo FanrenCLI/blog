@@ -9,6 +9,11 @@ author: Fanrencli
 ---
 ## 消息队列RabbitMQ
 
+- 生产者发消息只需要知道发给哪个交换机，设置对应的routingKey以及发送消息内容,同时还可以设置一些参数如消息的过期时间，是否持久化等
+- 消费者只需要知道从哪个队列中接受消息，提供消费消息的方法和是否自动应答
+- 队列的创建和交换机的创建可以由第三方创建，不需要在生产者和消费者的代码中涉及
+
+
 ### 简单模式以及工作队列模式
 
 - 简单模式：生产者->消息队列<-消费者
@@ -288,7 +293,87 @@ public class Consumer1{
 
 ### 死信
 
+```java
+class RabbitMQUtils{
+    public static Channel getChannel(){
+        ConnectionFactory connectionFactory = new ConnectionFactory();
+        connectionFactory.setHost("192.168.86.72");
+        connectionFactory.setUsername("rabbitmq");
+        connectionFactory.setPassword("rabbitmq");
+        connectionFacotry.setPort(5672);
+        Channel channel = connectionFactory.createChannel();
+        return channel;
+    }
+}
+public class producer{
+    public static void inithandler(){
+        Channel channel = RabbitMQUtils.getChannel();
+        //声明交换机 1.交换机名称，2.模式类型
+        channel.exchangeDeclare("nromal_exchange","direct");
+        channel.exchangeDeclare("dead_exchange","direct");
+        // 声明队列
+        /**
+         * 1.队列名称
+         * 2.是否持久化队列
+         * 3.是否重复消费
+         * 4.是否自动删除
+         * 5.其他属性
+         * 
+         */
+        Map<String,Object> map = new HashMap<>();
+        // 死信队列名称
+        map.put("x-dead-letter-exchange","dead_exchange");
+        // 死信队列路由
+        map.put("x-dead-letter-routing-key","siwang");
+        // 队列最大长度
+        map.put("x-max-length","6");
+        // 消息过期时间
+        map.put("x-message-ttl","10000");
+        // 正常队列绑定死信队列
+        channel.queueDeclare("normal_queue",false,false,false,map);
+        channel.queueDeclare("dead_queue",false,false,false,null);
+        // 交换机与队列绑定
+        channel.queueBind("normal_queue","nromal_exchange","zhengchang");
+        channel.queueBind("dead_queue","dead_exchange","siwang");
+    }
+    public static void main(String[] args) throws Execption{
+        inithandler();
+        Channel channel = RabbitMQUtils.getChannel();
+        for (int i=0; i<10; i++){
+            // 发送正常的消息
+            channel.basicPublish("normal_queue","zhengchang",
+            new AMQP.BasicProperties().builder().expiration("10000").build(),
+            ("test"+i).getBytes());
+        }
+    }
+}
+public class Consumer1{
 
+    public static void main(String[] args){
+        Channel channel = RabbitMQUtils.getChannel();
+        // 正常队列的消费者,不要自动确认
+        channel.basicComsume("normal_queue",false,(item1,item2)->{
+            if (new String(item2.getBody()).contains("test5")){
+                // 1.拒绝的消费实体，2.是否重新入队
+                channel.basicReject(item2.getEnvelope().getDeliverTag(),false);
+                System.out.println("拒绝消息：" + new String(item2.getBody()));
+            }else{
+                System.out.println("正常消息接收成功：" + new String(item2.getBody()));
+            }
+        },item->{
+            System.out.println(item+"消费中断");
+        });
+
+        Channel channel1 = RabbitMQUtils.getChannel();
+        // 死信队列消费者
+        channel1.basicComsume("dead_queue",true,(item1,item2)->{
+            System.out.println("死信消息接受成功：" + new String(item2.getBody()));
+        },item->{
+            System.out.println(item+"消费中断");
+        });
+    }
+}
+```
 
 
 
