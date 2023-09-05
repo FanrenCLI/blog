@@ -378,8 +378,186 @@ public class Consumer1{
 }
 ```
 
+### 延迟队列
 
+- 所谓延迟队列就是在创建队列时设置队列的消息过期时间，过期之后发送到绑定的死信队列中，过期时间可以在队列创建的时候指定，也可以在发送消息的时候指定
+- 整合SpringBoot:引入POM依赖
 
+```xml
+<dependencies>
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-amqp</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-test</artifactId>
+        <scope>test</scope>
+    </dependency>
+    <dependency>
+        <groupId>org.springframework.amqp</groupId>
+        <artifactId>spring-rabbit-test</artifactId>
+        <scope>test</scope>
+    </dependency>
+</dependencies>
+```
+
+```yml
+spring:
+    rabbitmq:
+        host: 192.168.86.72
+        username: rabbitmq
+        password: rabbitmq
+        port: 5672
+```
+
+```java
+// 生产者1，使用springboot提供的实例发送消息，此时如果实现了确认消息成功发送的函数，则默认开启消息确认
+@RestController
+public class PublishRest {
+    @Autowired
+    private RabbitTemplate rabbitTemplate;
+ 
+    @GetMapping(path = "publish")
+    public boolean publish(String exchange, String routing, String data) {
+        rabbitTemplate.convertAndSend(exchange, routing, data);
+        return true;
+    }
+}
+// 生产者2，自己创建一个实例，自己开启消息确认模式，不影响全局
+@RestController
+public class PublishRest {
+    @GetMapping(path = "publish")
+    public boolean publish(String exchange, String routing, String data) {
+        RabbitTemplate rabbitTemplate = new RabbitTemplate();
+        rabbitTemplate.setConnectionFactory(connectionFactory);
+        //设置开启Mandatory,才能触发回调函数,无论消息推送结果怎么样都强制调用回调函数
+        rabbitTemplate.setMandatory(true);
+ 
+        rabbitTemplate.setConfirmCallback(new RabbitTemplate.ConfirmCallback() {
+            @Override
+            public void confirm(CorrelationData correlationData, boolean ack, String cause) {
+                System.out.println("ConfirmCallback:     "+"相关数据："+correlationData);
+                System.out.println("ConfirmCallback:     "+"确认情况："+ack);
+                System.out.println("ConfirmCallback:     "+"原因："+cause);
+            }
+        });
+ 
+        rabbitTemplate.setReturnCallback(new RabbitTemplate.ReturnCallback() {
+            @Override
+            public void returnedMessage(Message message, int replyCode, String replyText, String exchange, String routingKey) {
+                System.out.println("ReturnCallback:     "+"消息："+message);
+                System.out.println("ReturnCallback:     "+"回应码："+replyCode);
+                System.out.println("ReturnCallback:     "+"回应信息："+replyText);
+                System.out.println("ReturnCallback:     "+"交换机："+exchange);
+                System.out.println("ReturnCallback:     "+"路由键："+routingKey);
+            }
+        });
+        rabbitTemplate.convertAndSend(exchange, routing, data);
+        return true;
+    }
+}
+@Configuration
+//Rabbit配置类
+public class RabbitConfig {
+    private final String EXCHANGE_NAME = "boot_topic_exchange";
+    private final String QUEUE_NAME = "boot_queue";
+
+    @Autowire
+    RabbitTemplate rabbitTemplate;
+    // 设置发送消息的消息确认回调函数，这个是全局设置的，如果想要不同生产者的回调函数不同,则不要使用springboot提供的Bean设置，在发送消息的时候不要注入spring容器的RabbitTemplate，自己new一个设置对应的回调函数，然后用这个new出来的对象发送消息
+    @Bean
+    public void createRabbitTemplate(ConnectionFactory connectionFactory){
+        // 可以自己创建一个实例
+        // RabbitTemplate rabbitTemplate = new RabbitTemplate();
+        rabbitTemplate.setConnectionFactory(connectionFactory);
+        //设置开启Mandatory,才能触发回调函数,无论消息推送结果怎么样都强制调用回调函数
+        rabbitTemplate.setMandatory(true);
+ 
+        rabbitTemplate.setConfirmCallback(new RabbitTemplate.ConfirmCallback() {
+            @Override
+            public void confirm(CorrelationData correlationData, boolean ack, String cause) {
+                System.out.println("ConfirmCallback:     "+"相关数据："+correlationData);
+                System.out.println("ConfirmCallback:     "+"确认情况："+ack);
+                System.out.println("ConfirmCallback:     "+"原因："+cause);
+            }
+        });
+ 
+        rabbitTemplate.setReturnCallback(new RabbitTemplate.ReturnCallback() {
+            @Override
+            public void returnedMessage(Message message, int replyCode, String replyText, String exchange, String routingKey) {
+                System.out.println("ReturnCallback:     "+"消息："+message);
+                System.out.println("ReturnCallback:     "+"回应码："+replyCode);
+                System.out.println("ReturnCallback:     "+"回应信息："+replyText);
+                System.out.println("ReturnCallback:     "+"交换机："+exchange);
+                System.out.println("ReturnCallback:     "+"路由键："+routingKey);
+            }
+        });
+ 
+        return rabbitTemplate;
+    }
+
+    //创建交换机
+    @Bean("bootExchange")
+    public Exchange getExchange()
+    {
+        return ExchangeBuilder
+                .topicExchange(EXCHANGE_NAME)//交换机类型 ;参数为名字
+                .durable(true)//是否持久化，true即存到磁盘,false只在内存上
+                .build();
+    }
+    //创建队列
+    @Bean("bootQueue")
+    public Queue getMessageQueue()
+    {
+        // 绑定死信交换机
+        Map<String,Object> map = new HashMap<>();
+        map.put("x-dead-letter-exchange",EXCHANGE_NAME);
+        map.put("x-dead-routing-key","routingkey");
+        map.put("x-message-ttl",10000);
+        return new QueueBuilder.durable(QUEUE_NAME).withArguments(map).build();
+    }
+    //交换机绑定队列
+    @Bean
+    //@Qualifier注解,使用名称装配进行使用
+    public Binding bindMessageQueue(@Qualifier("bootExchange") Exchange exchange, @Qualifier("bootQueue") Queue queue)
+    {
+        return BindingBuilder
+                .bind(queue)
+                .to(exchange)
+                .with("routingKey.*")
+                .noargs();
+    }
+}
+//消费者
+@Component
+public class Consumer {
+
+    /**
+     * 手动ack
+     *在@RabbitListener时用于消费者方法上，可以设置是否自动确认，还可以创建对列，和创建交换机
+     * 一般可以通过配置文件配置对应的交换机和队列，不会再注解中配置
+     * @param data
+     * @param deliveryTag
+     * @param channel
+     * @throws IOException
+     */
+    @RabbitListener(
+        bindings = @QueueBinding(value = @Queue(value = "topic.n3", durable = "false", autoDelete = "true"),
+        exchange = @Exchange(value = "topic.e", type = ExchangeTypes.TOPIC), key = "r"), 
+        ackMode = "MANUAL")
+    public void consumerDoAck(String data, @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag, Channel channel) throws IOException {
+        System.out.println("consumerDoAck: " + data);
+    
+        if (data.contains("success")) {
+            channel.basicAck(deliveryTag, false);
+        } else {
+            // 第三个参数true，表示这个消息会重新进入队列
+            channel.basicNack(deliveryTag, false, true);
+        }
+    }
+}
+```
 
 
 
