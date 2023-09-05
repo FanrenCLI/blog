@@ -18,6 +18,8 @@ author: Fanrencli
 
 - 简单模式：生产者->消息队列<-消费者
 - 工作队列模式：生产者->消息队列<-[消费者1,消费者2...]
+
+
 ```java
 class RabbitMQUtils{
     public static Channel getChannel(){
@@ -94,6 +96,7 @@ public class Consumer{
 }
 
 ```
+
 
 ### 发布订阅模式
 
@@ -471,9 +474,7 @@ public class RabbitConfig {
         // 可以自己创建一个实例
         // RabbitTemplate rabbitTemplate = new RabbitTemplate();
         rabbitTemplate.setConnectionFactory(connectionFactory);
-        //设置开启Mandatory,才能触发回调函数,无论消息推送结果怎么样都强制调用回调函数
-        rabbitTemplate.setMandatory(true);
- 
+        // 判断消息是否发送到交换机中
         rabbitTemplate.setConfirmCallback(new RabbitTemplate.ConfirmCallback() {
             @Override
             public void confirm(CorrelationData correlationData, boolean ack, String cause) {
@@ -482,7 +483,9 @@ public class RabbitConfig {
                 System.out.println("ConfirmCallback:     "+"原因："+cause);
             }
         });
- 
+        //设置开启Mandatory,当消息发送到队列中，才能触发回调函数,无论消息推送结果怎么样都强制调用回调函数
+        rabbitTemplate.setMandatory(true);
+        // 判断消息是否从交换机发送到队列中
         rabbitTemplate.setReturnCallback(new RabbitTemplate.ReturnCallback() {
             @Override
             public void returnedMessage(Message message, int replyCode, String replyText, String exchange, String routingKey) {
