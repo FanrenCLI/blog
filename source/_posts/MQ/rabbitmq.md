@@ -434,9 +434,8 @@ public class PublishRest {
     public boolean publish(String exchange, String routing, String data) {
         RabbitTemplate rabbitTemplate = new RabbitTemplate();
         rabbitTemplate.setConnectionFactory(connectionFactory);
-        //设置开启Mandatory,才能触发回调函数,无论消息推送结果怎么样都强制调用回调函数
-        rabbitTemplate.setMandatory(true);
- 
+        // 判断消息是否发送到交换机中
+        // 若要此功能生效，还需要在配置文件中配置：spring.rabbitmq.publisher-confirm-type
         rabbitTemplate.setConfirmCallback(new RabbitTemplate.ConfirmCallback() {
             @Override
             public void confirm(CorrelationData correlationData, boolean ack, String cause) {
@@ -445,7 +444,9 @@ public class PublishRest {
                 System.out.println("ConfirmCallback:     "+"原因："+cause);
             }
         });
- 
+        //设置开启Mandatory,当消息发送到队列中，才能触发回调函数,无论消息推送结果怎么样都强制调用回调函数
+        rabbitTemplate.setMandatory(true);
+        // 判断消息是否从交换机发送到队列中
         rabbitTemplate.setReturnCallback(new RabbitTemplate.ReturnCallback() {
             @Override
             public void returnedMessage(Message message, int replyCode, String replyText, String exchange, String routingKey) {
@@ -475,6 +476,7 @@ public class RabbitConfig {
         // RabbitTemplate rabbitTemplate = new RabbitTemplate();
         rabbitTemplate.setConnectionFactory(connectionFactory);
         // 判断消息是否发送到交换机中
+        // 若要此功能生效，还需要在配置文件中配置：spring.rabbitmq.publisher-confirm-type
         rabbitTemplate.setConfirmCallback(new RabbitTemplate.ConfirmCallback() {
             @Override
             public void confirm(CorrelationData correlationData, boolean ack, String cause) {
@@ -484,6 +486,7 @@ public class RabbitConfig {
             }
         });
         //设置开启Mandatory,当消息发送到队列中，才能触发回调函数,无论消息推送结果怎么样都强制调用回调函数
+        // 此参数相对在spring由对应的配置：spring.rabbitmq.template.mandatory，如果此参数配置了，则优先级高于spring.rabbitmq.publisher-returns,如果没有配置则以后者为准
         rabbitTemplate.setMandatory(true);
         // 判断消息是否从交换机发送到队列中
         rabbitTemplate.setReturnCallback(new RabbitTemplate.ReturnCallback() {
@@ -496,8 +499,6 @@ public class RabbitConfig {
                 System.out.println("ReturnCallback:     "+"路由键："+routingKey);
             }
         });
- 
-        return rabbitTemplate;
     }
 
     //创建交换机
@@ -562,7 +563,11 @@ public class Consumer {
 }
 ```
 
+### 备份交换机
 
+- 当生产者发送消息到原始交换机上时发现此条消息指定的队列不存在，无法转发消息，这时此条消息就会转发到备份交换机
+- 备份交换机绑定在原始交换机上，通过参数的形式进行绑定，与死信交换机不同，死信交换机是绑定在队列上。
+- 如果备份交换机与消息回退回调函数同时存在，则以备份交换机为准
 
 
 
