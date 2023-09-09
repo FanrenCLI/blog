@@ -1,6 +1,7 @@
 ---
 title: SpringBean的生命周期
 date: 2023-09-09 20:00:00
+top: true
 categories:
   - JAVA
   - Spring

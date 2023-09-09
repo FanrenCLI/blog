@@ -1,8 +1,6 @@
 ---
 title: SSD
 date: 2021-04-19 09:42:12
-top: true
-cover: true
 categories:
 - Deep Learning
 tags:
