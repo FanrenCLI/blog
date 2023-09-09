@@ -1,8 +1,6 @@
 ---
 title: ShuffleNetV2
 date: 2021-05-15 10:18:02
-top: true
-cover: true
 categories: 
 - Deep Learning
 tags:

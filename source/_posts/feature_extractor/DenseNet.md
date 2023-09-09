@@ -1,8 +1,6 @@
 ---
 title: DenseNet
 date: 2021-05-13 12:14:52
-top: true
-cover: true
 categories: 
 - Deep Learning
 tags:

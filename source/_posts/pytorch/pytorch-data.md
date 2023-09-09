@@ -1,8 +1,6 @@
 ---
 title: 基于pytorch的代码完整流程
 date: 2021-05-20 10:37:31
-top: true
-cover: true
 categories: Deep Learning
 tags:
 - Pytorch
