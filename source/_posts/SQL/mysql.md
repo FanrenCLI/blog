@@ -358,3 +358,5 @@ select id,name from table1;
     - 使用了`range`|`!=`|`<>`|`is not null`|`like "%xxx"`
     - OR前后存在非索引的列
     - 数据库的字符集不匹配
+
+#### 事务
