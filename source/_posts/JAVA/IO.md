@@ -3,12 +3,15 @@ title: IO
 date: 2021-12-15 23:47:54
 categories:
   - JAVA
+  - BIO
 tags:
   - IO
+  - Socket
+  - ServerSocket
 author: Fanrencli
 ---
 	
-## IO操作
+## 阻塞IO操作
 
 ### IO核心类
 - `File`
@@ -283,6 +286,135 @@ public class Main {
         while(scanner.hasNext()){
             System.out.println(scanner.next());
         }
+    }
+}
+```
+
+## BIO
+
+- `BIO`即传统的IO操作接口：传统的IO操作使用流，流是单向的。
+- 服务器端：`ServerSocket`
+- 客户端：`Socket`
+
+
+### 服务器端（ServerSocket）
+
+- 构造方法：`public ServerSocket(int port) throws IOException`
+- 监听客户端连接：`public Socket accept() throws IOException`
+- 取得客户端的数据：`public OutputStream getInputStream() throws IOException`
+- 向客户端发送数据`public OutputStream getOutputStream() throws IOException`
+
+```java
+public class Main {
+    public static void main(String[] args) throws IOException, ClassNotFoundException {
+        ServerSocket serverSocket = new ServerSocket(9999);
+        System.out.println("等待用户链接-----------------");
+        Socket client = serverSocket.accept();
+        // 获取客户端输入的数据
+        InputStream in = client.getInputStream();
+        // 获取输入数据也可以通过in.read()/in.read(buffer)->new String(buffer,0,len);
+        Scanner scanner = new Scanner(in);
+        scanner.useDelimiter("\n");
+        // 获取向客户端输出数据的流，并向客户端输出数据
+        OutputStream out = client.getOutputStream();
+        // 向客户端输出数据也可以用out.write("helloworld".getbytes())
+        PrintStream printStream = new PrintStream(out);
+        while(scanner.hasNext()){
+            String req = scanner.next();
+            if("q".equals(req)){
+                break;
+            }
+            System.out.println(req);
+            printStream.println(req);//注意这里的println,也可以换位printStream.print(req+"\n")否则无法输出
+        }
+        out.close();
+        client.close();
+        serverSocket.close();
+    }
+}
+```
+
+### 客户端（Socket）
+- 构造方法：`public Socket(String IP, int port) throws IOException`
+- 取得服务器的数据：`public OutputStream getInputStream() throws IOException`
+- 向服务器发送数据`public OutputStream getOutputStream() throws IOException`
+
+
+```java
+public class test1 {
+    public static void main(String[] args) throws Exception {
+        Socket scoket =new Socket("localhost",9999);
+        Scanner scanner = new Scanner(scoket.getInputStream());
+        scanner.useDelimiter("\n");
+        Scanner input = new Scanner(System.in);
+        input.useDelimiter("\n");
+        PrintStream printStream = new PrintStream(scoket.getOutputStream());
+        while (true){
+            System.out.print("Inpu data:");
+            if(input.hasNext()){
+                String str = input.next();
+                if("q".equals(str)){
+                    break;
+                }
+                printStream.print(str+"\n");
+            }
+            if(scanner.hasNext()){
+                System.out.println(scanner.next());
+            }
+        }
+        input.close();
+        printStream.close();
+        scanner.close();
+        scoket.close();
+    }
+}
+```
+
+### 多线程解决BIO带来的问题
+
+- BIO即阻塞IO，如果仅用单线程处理，那么只允许一个客户链接服务器，要实现多个客户链接，就需要采用多线程处理
+
+
+```java
+class test implements Runnable{
+    private Socket clientsocket;
+    public test(Socket socket){
+        this.clientsocket = socket;
+    }
+    @Override
+    public void run() {
+        try{
+            Scanner input = new Scanner(this.clientsocket.getInputStream());
+            while (input.hasNext()){
+                String request = input.next();
+                if("quit".equals(request)){
+                    break;
+                }
+                System.out.println(String.format("From %s : %s",this.clientsocket.getRemoteSocketAddress(),request));
+                String response = "From BIOserver "+request +"\n";
+                this.clientsocket.getOutputStream().write(response.getBytes());
+            }
+            input.close();
+            this.clientsocket.close();
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+
+    }
+}
+public class BIO_ThreadPool {
+    public static void main(String[] args) throws IOException {
+        ExecutorService executorService = Executors.newFixedThreadPool(3);
+        ServerSocket serverSocket = new ServerSocket(9999);
+        System.out.println("BIO server has started, listening on port"+ serverSocket.getLocalSocketAddress());
+        // 循环监听是否有客户端连接，并分配线程执行
+        while (true){
+            Socket clientsocket = serverSocket.accept();
+            executorService.submit(new test(clientsocket));
+            System.out.println("connection from "+clientsocket.getRemoteSocketAddress());
+
+        }
+
     }
 }
 ```
