@@ -300,6 +300,9 @@ public class Consumer1{
 - 死信队列绑定到正常的队列中，依赖于正常的队列，当正常队列出现消息过期，消息拒绝，队列已满，则消息会转发到死信交换机上
 - 死信交换机可以绑定到多个正常的队列中，根据每个正常队列绑定死信交换机的不同路由键，将正常队列的死亡的消息转发到死信交换机上对应路由键的队列。
 
+
+![RabbitMQ死信图示](http://39.106.34.39:4567/rabbitmq2.png)
+
 ```java
 class RabbitMQUtils{
     public static Channel getChannel(){
@@ -386,8 +389,6 @@ public class Consumer1{
 
 - 所谓延迟队列就是在创建队列时设置队列的消息过期时间，过期之后发送到绑定的死信队列中，过期时间可以在队列创建的时候指定，也可以在发送消息的时候指定
 - 整合SpringBoot:引入POM依赖
-
-![RabbitMQ死信图示](http://39.106.34.39:4567/rabbitmq2.png)
 
 
 ```xml
