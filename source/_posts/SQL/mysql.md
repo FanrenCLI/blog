@@ -336,6 +336,7 @@ select * from sys.innodb_lock_waits;
 - 示例：假如有（id,name）联合索引，何为索引下推？
 
 ```sql
+
 -- 是否开启索引下推
 set optimizer_switch = 'index_condition_pushdown=on';
 

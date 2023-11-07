@@ -387,6 +387,9 @@ public class Consumer1{
 - 所谓延迟队列就是在创建队列时设置队列的消息过期时间，过期之后发送到绑定的死信队列中，过期时间可以在队列创建的时候指定，也可以在发送消息的时候指定
 - 整合SpringBoot:引入POM依赖
 
+![RabbitMQ死信图示](http://39.106.34.39:4567/rabbitmq2.png)
+
+
 ```xml
 <dependencies>
     <dependency>
