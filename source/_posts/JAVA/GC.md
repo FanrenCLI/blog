@@ -35,18 +35,6 @@ author: Fanrencli
 
 ![JVM对象分配过程](http://39.106.34.39:4567/jvm_pic1.jpg)
 
-常用的JVM参数设置：
-- -XX:+PrintFlagsInitial:查看所有的参数的默认初始值
-- -XX:PrintFlagsFinal:查看所有的参数的最终值
-- -Xms:初始堆空间大小（默认1/64)
-- -Xmx:最大对空间大小（默认1/4）
-- -Xmn:设置新生代的大小（初始值及最大值）
-- -XX:NewRaito:配置新生代和老年代再对结构的占比
-- -XX:SurvivorRatio：设置新生代中的Eden和S0、S1空间的比例
-- -XX:MaxTenuringThreshold:设置新生代垃圾的最大年龄
-- -XX:+PrintGCDetails:输出详细的GC处理日志
-- -XX:+PrintGC：打印GC简要信息
-- -XX:HandlePromotionFailure:是否设置空间分配担保
 
 对象的分配不一定都在堆上分配，首先通过逃逸分析，如果这个对象只在此方法中使用，则认为没有逃逸，就在栈中分配内存，随着方法销毁。
 TLAB的出现是由于堆内空间共享，如果多个线程同时创建对象申请空间就会存在竞争，此时通过给每个线程分配一个TLAB的空间，这样就不需要竞争空间了，TLAB在空间上是私有的，但是内部的对象是共享的。
@@ -105,3 +93,47 @@ TLAB的出现是由于堆内空间共享，如果多个线程同时创建对象�
 
 ```
 
+
+常用的JVM参数设置：
+- -XX:+PrintFlagsInitial:查看所有的参数的默认初始值
+- -XX:PrintFlagsFinal:查看所有的参数的最终值
+- -Xms:初始堆空间大小（默认1/64)
+- -Xmx:最大对空间大小（默认1/4）
+- -Xmn:设置新生代的大小（初始值及最大值）
+- -XX:NewRaito:配置新生代和老年代再对结构的占比
+- -XX:SurvivorRatio：设置新生代中的Eden和S0、S1空间的比例
+- -XX:MaxTenuringThreshold:设置新生代垃圾的最大年龄
+- -XX:+PrintGCDetails:输出详细的GC处理日志
+- -XX:+PrintGC：打印GC简要信息
+- -XX:HandlePromotionFailure:是否设置空间分配担保
+
+设置GC日志参数：
+- -XX:+PrintGCDetails：打印GC时的详细信息
+- -XX:+PrintGCDateStamps：打印GC系统时间
+- -Xloggc:<GC文件路径>:将日志存储到文件中，文件按时间取名
+- -XX:+UseGCLogFileRotation：打开GC日志滚动记录功能
+- -XX:NumberOfGCLogFiles：GC日志数量
+- -XX:GCLogFileSize：GC日志文件大小
+
+GC日志示例：
+
+```txt
+OpenJDK 64-Bit Server VM (25.312-b07) for linux-amd64 JRE (1.8.0_312-b07), built on Nov 13 2021 08:26:07 by "mockbuild" with gcc 8.5.0 20210514 (Red Hat 8.5.0-4)
+Memory: 4k page, physical 12979592k(10600960k free), swap 4194304k(4194304k free)
+CommandLine flags: -XX:GCLogFileSize=8192 -XX:InitialHeapSize=207673472 -XX:MaxHeapSize=3322775552 -XX:NumberOfGCLogFiles=5 -XX:+PrintGC -XX:+PrintGCDateStamps -XX:+PrintGCDetails -XX:+PrintGCTimeStamps -XX:+UseCompressedClassPointers -XX:+UseCompressedOops -XX:+UseGCLogFileRotation -XX:+UseParallelGC 
+2022-04-14T07:52:06.521+0000: 0.073: [GC (Allocation Failure) [PSYoungGen: 51712K->8190K(59904K)] 51712K->34086K(196608K), 0.0534755 secs] [Times: user=0.46 sys=0.21, real=0.05 secs] 
+2022-04-14T07:52:06.855+0000: 0.406: [Full GC (Ergonomics) [PSYoungGen: 8176K->3053K(111616K)] [ParOldGen: 164547K->168844K(363008K)] 172723K->171898K(474624K), [Metaspace: 2946K->2946K(1056768K)], 1.3264231 secs] [Times: user=14.87 sys=0.20, real=1.33 secs] 
+Heap
+ PSYoungGen      total 721408K, used 7219K [0x000000077df80000, 0x00000007c0000000, 0x00000007c0000000)
+  eden space 360960K, 2% used [0x000000077df80000,0x000000077e68ce50,0x0000000794000000)
+  from space 360448K, 0% used [0x0000000794000000,0x0000000794000000,0x00000007aa000000)
+  to   space 360448K, 0% used [0x00000007aa000000,0x00000007aa000000,0x00000007c0000000)
+ ParOldGen       total 1561600K, used 765K [0x00000006f9e00000, 0x0000000759300000, 0x000000077df80000)
+  object space 1561600K, 0% used [0x00000006f9e00000,0x00000006f9ebf6d8,0x0000000759300000)
+ Metaspace       used 2982K, capacity 4486K, committed 4864K, reserved 1056768K
+  class space    used 281K, capacity 386K, committed 512K, reserved 1048576K
+```
+
+生成DUMP文件常用参数：
+- -XX:+HeapDumpOnOutOfMemoryError
+- -XX:HeapDumpPath=<dump文件路径>
