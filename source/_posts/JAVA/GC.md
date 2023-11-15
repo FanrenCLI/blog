@@ -122,28 +122,29 @@ TLAB的出现是由于堆内空间共享，如果多个线程同时创建对象�
 
 - 强引用：如果一个对象与GC Roots之间存在强引用，则称这个对象为强可达对象，例如：String asd = new String("");
 - 软引用：软引用是使用SoftReference创建的引用，强度弱于强引用，被其引用的对象在内存不足的时候会被回收，不会产生内存溢出。
+
 ```java
   String s = new String("AABB");    // 创建强引用与String对象关联，现在该String对象为强可达状态
   SoftReference<String> softRef = new SoftReference<String>(s);     // 再创建一个软引用关联该对象
   s = null;        // 消除强引用，现在只剩下软引用与其关联，该String对象为软可达状态
   s = softRef.get();  // 重新关联上强引用
 ```
+
 - 弱引用：在发生GC时，只要发现弱引用，不管系统堆空间是否足够，都会将对象进行回收。
+
 ```java
   String s = new String("Frank");    
   WeakReference<String> weakRef = new WeakReference<String>(s);
   s = null;
 
 ```
+
 - 虚引用：当垃圾回收器准备回收一个对象时，如果发现它还有虚引用，就会在垃圾回收后，将这个虚引用加入引用队列，在其关联的虚引用出队前，不会彻底销毁该对象。 所以可以通过检查引用队列中是否有相应的虚引用来判断对象是否已经被回收了。
 
-
 ```java
-
  private static final ReferenceQueue<Student> QUEUE = new ReferenceQueue<>();
  PhantomReference<Student> phantomReference = new PhantomReference<>(new Student(), QUEUE);
  System.out.println(phantomReference.get());
-
 ```
 ## JVM启动参数介绍
 
