@@ -1,5 +1,5 @@
 ---
-title: gc
+title: JVM
 date: 2021-12-20 17:26:18
 categories:
   - JAVA
@@ -191,3 +191,19 @@ Heap
 生成DUMP文件常用参数：
 - -XX:+HeapDumpOnOutOfMemoryError
 - -XX:HeapDumpPath=<dump文件路径>
+
+## JVM调优命令
+
+- jps:查询当前系统中正在运行的java进程，和任务管理器中的进程ID是一致的
+  - `jps -q`：只展示进程号
+  - `jps -l`：展示进程对应的启动类的全路径名
+  - `jps -m`：展示java进程启动时传递给main函数的参数
+  - `jps -v`：展示java进程启动时包含的JVM配置参数：-Xms/-Xmx
+  - 注意，如果java进程启动时使用了参数：-XX:-UserPerfData,那么jps/jstat命令将无法看到此进程
+  - 此外，还可以在jps命令最后加上IP:port来收集远程主机的信息，但是必须安装jstatd
+
+- jstat:查看JVM统计信息
+  - `jstat -<options> [-t] [-h<lines>] <vmid> [<interval> [<count>]]`
+  - `options`: 参数可选项有多种，其中包括：-class/
+  - `jps -class <PID>`
+  ![P1](img/jps1.png)
