@@ -82,7 +82,7 @@ author: Fanrencli
 作为主流的JVM，HotSpot虚拟机采用分代收集的方法，分为老年代和新生代。其中新生代使用标记-复制方法进行垃圾回收，从而将新生代分为Eden和Survivor1和Survivor0三个部分，其中Eden占比较大，如果Eden满了就进行minorGC，将活着的对象放入Survivor中空着的区域，清空Eden和另一个Survivor区域。大对象可能直接进入老年代。
 - minorGC：Eden满了会触发minorGC,Survivor满了不会触发，收集整个新生代的垃圾，会触发STW。
 - majorGC:收集整个老年代的垃圾，老年代空间不足就会触发
-- FullGC：收集整个java堆和方法区的垃圾
+- FullGC：收集整个java堆和方法区的垃圾，fullgc只是一个概念，意指所有内存空间都会进行垃圾回收，但是需要结合具体的垃圾收集器进行分析。
 
 ![JVM对象分配过程](http://39.106.34.39:4567/jvm_pic1.jpg)
 
@@ -150,6 +150,7 @@ TLAB的出现是由于堆内空间共享，如果多个线程同时创建对象�
 
 常用的JVM参数设置：
 - -XX:+PrintFlagsInitial:查看所有的参数的默认初始值
+![J1](http://39.106.34.39:4567/image-10.png)
 - -XX:PrintFlagsFinal:查看所有的参数的最终值
 - -Xms:初始堆空间大小（默认1/64)
 - -Xmx:最大对空间大小（默认1/4）
@@ -157,7 +158,6 @@ TLAB的出现是由于堆内空间共享，如果多个线程同时创建对象�
 - -XX:NewRaito:配置新生代和老年代再对结构的占比
 - -XX:SurvivorRatio：设置新生代中的Eden和S0、S1空间的比例
 - -XX:MaxTenuringThreshold:设置新生代垃圾的最大年龄
-- -XX:+PrintGCDetails:输出详细的GC处理日志
 - -XX:+PrintGC：打印GC简要信息
 - -XX:HandlePromotionFailure:是否设置空间分配担保
 
@@ -204,6 +204,46 @@ Heap
 
 - jstat:查看JVM统计信息
   - `jstat -<options> [-t] [-h<lines>] <vmid> [<interval> [<count>]]`
-  - `options`: 参数可选项有多种，其中包括：-class/
-  - `jps -class <PID>`
-  ![P1](img/jps1.png)
+  - `options`: 参数可选项有多种，其中包括：-class/-compiler/-printcompilation/-gc
+  - `jps -class <PID>`:*load*加载的类数量和字节数，*unload*卸载的类的数量和字节数，*Time*花费的时间
+  ![P1](http://39.106.34.39:4567/jps1.png)
+  - `jps -class <PID> <interval>`:每隔多少毫秒打印一次
+  ![P2](http://39.106.34.39:4567/image.png)
+  - `jps -class <PID> <interval> <count>`:每隔多少毫秒打印一次,一共打印多少次
+  ![P3](http://39.106.34.39:4567/image-1.png)
+  - `jps -class -t <PID>`:新增时间列，表示程序启动到输出信息的总时间
+  ![P4](http://39.106.34.39:4567/image-2.png)
+  - `jps -class -t -h3 <PID> <interval> <count>`:周期性输出信息时每个3行打印一行表头
+  ![P5](http://39.106.34.39:4567/image-3.png)
+  - `jps -compiler <PID>`:程序启动JIT编译的数量，失败的数量，不合法的数量，耗时
+  ![P6](http://39.106.34.39:4567/image-4.png)
+  - `jps -printcompilation <PID>`:输出已经被JIT编译的方法
+  - `jps -gc <PID>`:输出当前内存空间的使用情况：EC伊甸园区容量/EU伊甸园区使用量/S0C幸存者1容量/S0U幸存者1使用量/S1C/S1U/OC老年代容量/OU老年代使用量/MC方法区容量/MU方法区使用量/YGC年轻代GC次数/YGCT年轻代GC耗时/FGC老年代GC次数/FGCT老年代GC时间/GCT所有的GC耗时
+  ![P7](http://39.106.34.39:4567/image-5.png)
+  - `jps -gcutil -t -h10 <PID> 5000`:主要关注各个区域的使用占比
+  ![P8](http://39.106.34.39:4567/image-6.png)
+
+- jinfo:实时查看和修改JVM参数
+  - `jinfo -sysprops <PID>`:查看所有的系统属性
+  ![P9](http://39.106.34.39:4567/image-8.png)
+  - `jinfo -flags <PID>`:查看所有被赋值的参数
+  ![P10](http://39.106.34.39:4567/image-7.png)
+  - `jinfo -flag 具体的参数 <PID>`:查看某个具体参数的值
+  ![P11](http://39.106.34.39:4567/image-9.png)
+  - `jinfo -flag +/-具体的参数 <PID>`:修改某个具体的参数（只有部分参数可以修改manageable）
+  - `jinfo -flag 具体的参数=xxx <PID>`:修改某个具体的参数（只有部分参数可以修改manageable）
+
+- jmap:导出内存印象文件
+  - `jmap [option] <PID>`
+  - `jmap -dump:format=b,file=/home/test.prof <PID>`:*format=b*标准格式
+  - `jmap -dump:live,format=b,file=/home/test.prof <PID>`:*live*保存存活的对象
+  - `jmap -heap <PID>`:查看堆内存的相关配置和使用情况，与jstat相似
+  - `jmap -histo <PID>`:查看对象的内存占用情况
+
+- jhat:分析jmap导出的内存文件（JDK8之后就被删除了，官方推荐使用Visualvm代替
+  - `jhat <文件地址>`：分析dump文件，并在7000端口提供浏览器访问入口
+
+- jstack:获取当前进程中的线程相关信息
+  - `jstack <PID>`
+  ![P12](http://39.106.34.39:4567/image-11.png)
+
