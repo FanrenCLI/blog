@@ -392,10 +392,12 @@ select id,name from table1;
     - SERIALIZABLE：解决所有问题
 
     ```sql
+    
     -- 查看数据库的隔离级别
     show variables like '%isolation%'
+
     ```
-    
+
 - 数据库的四种隔离级别如何实现：MVCC/加锁
 
 
