@@ -1,6 +1,6 @@
 ---
 title: MySql高级
-date: 2023-7-16 14:11:00
+date: 2023-11-24 20:43:44
 categories:
   - SQL
 tags:
@@ -261,7 +261,7 @@ set @@slow_query_log = on
 -- 查看慢查询日志文件的存放地址
 show variables like 'slow_query_log_file'
 -- 修改慢查询的时间阈值
-show variables like 'long_query_time
+show variables like 'long_query_time'
 ```
 
 - 通过mysql自带的分析工具分析慢查询的日志文件：mysqldumpslow [参数] /usr/mysql/slow.log
@@ -347,10 +347,10 @@ select * from stu where id like '3%' and name ='lujie'
 ```
 
 - 何为索引覆盖?
+
 ```sql
 -- 当我们使用二级索引查询数据的时候，如果返回的列在二级索引中都包含则不需要进行回表取数据，二级索引中默认含有主键
 select id,name from table1;
-
 ```
 
 - 索引失效的几大情况：
@@ -361,3 +361,43 @@ select id,name from table1;
     - 数据库的字符集不匹配
 
 #### 事务
+
+- 显式事务
+    - 可以通过*begin*开启事务，或者通过*start transaction*开启事务，相比与*begin*,*start transaction*后面可以接着参数：`[read only|read wirte|with consistent snapshot]`,第三个参数可以第一个参数或者第二个参数配合使用
+
+    ```sql
+    start transaction read only;
+    start transaction read write,with consistent snapshot;
+    ```
+
+- 隐式事务
+
+    - auto_commit变量为on
+
+    ```sql
+    show variables like 'auto_commit'
+    ```
+    - DDL语句会自动提交
+    - 修改表结构等操作
+    - 显式开启事务时会自动提交上一个事务
+
+- 事务并发存在的问题
+    - 脏读：事务A读取了事务B中没有提交的新增/修改的数据
+    - 不可重复度：事务A读取了一个数据，然后事务B进行了修改并提交，然后事务A再读取到了事务B提交的数据
+    - 幻读：事务A读取了一些数据，事务B插入了一些数据并提交，事务A再同样条件读取的时候发现多了数据，如果少了则是不可重复读
+- 数据库四种隔离级别
+    - READ UNCOMMITED：什么都没解决
+    - READ COMMITED:解决脏读
+    - REPEATABLE READ：解决脏读和不可重复度(其实也解决了幻读问题，通过加锁)
+    - SERIALIZABLE：解决所有问题
+
+    ```sql
+    -- 查看数据库的隔离级别
+    show variables like '%isolation%'
+    ```
+- 数据库的四种隔离级别如何实现：MVCC/加锁
+
+
+#### 日志
+
+- Redo日志和Undo日志

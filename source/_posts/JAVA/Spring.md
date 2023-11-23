@@ -1,6 +1,6 @@
 ---
 title: Spring特性
-date: 2021-12-23 20:43:44
+date: 2023-11-24 20:43:44
 categories:
   - JAVA
   - Spring
@@ -8,6 +8,7 @@ tags:
   - AOP
   - IOC
   - MVC
+  - Transaction
 author: Fanrencli
 ---
 
@@ -282,3 +283,6 @@ public class MyDispatcherServlet extends HttpServlet {
     }
 }
 ```
+
+## 事务
+
