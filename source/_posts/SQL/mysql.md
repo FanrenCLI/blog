@@ -7,9 +7,9 @@ tags:
   - MySql
 author: Fanrencli
 ---
-### MySql使用
+## MySql使用
 
-#### 表字段操作
+### 表字段操作
 ```sql
 -- 修改字段
 alter table table_name modify[add] [column] field_name int not null default 0;
@@ -20,7 +20,7 @@ alter table tablename1 rename to tablename2;
 -- 删除字段
 alter table table_name drop column field_name;
 ```
-#### 存储函数
+### 存储函数
 ```sql
 delimiter $ 定义结束符号
 create function myfuntion(user_id int)
@@ -33,7 +33,7 @@ end$
 delimiter ; 定义结束符号
 select myfunction("22")；
 ```
-#### 触发器
+### 触发器
 ```sql
 show triggers;
 drop trigger if exist trigger_name;
@@ -46,7 +46,7 @@ insert into test1() values ()
 end$
 delimiter ; 定义结束符号
 ```
-#### 存储过程
+### 存储过程
 ```sql
 -- 示例
     delimiter $ 定义结束符号
@@ -61,7 +61,7 @@ delimiter ; 定义结束符号
     select @sex1 from dual;
 ```
 
-#### 外键约束
+### 外键约束
 
 ```sql
 CREATE TABLE IF NOT EXISTS test1(
@@ -97,16 +97,16 @@ alter table test1 add primary key (id)
 alter table test1 drop primary key;
 ```
 
-### MySql高级特性
+## MySql高级特性
 
-#### 字符集
+### 字符集
 
 ```sql
 -- 查看数据库变量
 show variables like "%character%";
 ```
 
-#### 用户操作
+### 用户操作
 
 ```sql
 -- 查看所有用户
@@ -148,7 +148,7 @@ revoke all privileges on *.* to 'manage'@'localhost';
 -- 删除角色
 drop role 'manage';
 ```
-#### SQL执行流程
+### SQL执行流程
 
 ```sql
 -- 首先执行一条sql语句
@@ -170,7 +170,7 @@ show profile [参数] for query 1;
 
 
 
-#### 存储引擎
+### 存储引擎
 
 - 存储引擎innodb引擎在5.7版本分为.frm和.idb两个文件进行数据存储，8.0之后改为.idb一个文件存储。innodb存储引擎支持事务，数据库奔溃恢复，以及行级锁，列锁，但是内存要求高
 - MyISAM存储引擎在5.7版本分为.frm,.MYI,.MYD三个文件存储数据，8.0之后改为.sdi,.MYI,.MYD三个文件，不支持事务，和崩溃恢复，但是针对count(*)查询速度快，访问速度快
@@ -184,7 +184,7 @@ show variables like "%storage_engine%";
 show variables like 'datadir';
 ```
 
-#### 索引
+### 索引
 - 聚簇索引和非聚簇索引：都是B+树，区别在于数据表的行记录是否存储在叶子节点，一般聚簇索引是以主键建立的索引，非聚簇索引一般是在主键的基础上建立的二级索引
 - B树和B+树：区别在于数据是否只存储在叶子节点，B树非叶子节点也存储数据
 - MyISAM引擎所建立的索引都是非聚簇索引，以主键建立的索引叶子节点都是数据表的地址，用于回表操作，二级索引与Innodb相同（因此，MyISAM的数据存储文件其中索引文件和数据文件是分开的）
@@ -232,7 +232,7 @@ show warnings;
 - row:sql语句执行所涉及到的行数，越少越好
 
 
-#### 查看系统性能参数
+### 查看系统性能参数
 
 ```sql
 show [session|global] status like '参数'
@@ -251,7 +251,7 @@ show [session|global] status like '参数'
 - Com_delete:删除操作的次数
 - last_query_cost:最后一次查询的成本
 
-#### 慢查询
+### 慢查询
 
 ```sql
 -- 查看慢查询是否开启
@@ -267,7 +267,7 @@ show variables like 'long_query_time'
 - 通过mysql自带的分析工具分析慢查询的日志文件：mysqldumpslow [参数] /usr/mysql/slow.log
 
 
-#### Mysql调优
+### Mysql调优
 
 - 索引情况
 
@@ -360,7 +360,7 @@ select id,name from table1;
     - OR前后存在非索引的列
     - 数据库的字符集不匹配
 
-#### 事务
+### 事务
 
 - 显式事务
     - 可以通过*begin*开启事务，或者通过*start transaction*开启事务，相比与*begin*,*start transaction*后面可以接着参数：`[read only|read wirte|with consistent snapshot]`,第三个参数可以第一个参数或者第二个参数配合使用
@@ -397,14 +397,132 @@ select id,name from table1;
 show variables like '%isolation%'
 ```
 
-#### 锁&MVCC
+### 锁&MVCC
 首先明确为什么会出现隔离级别的概念，是因为并发访问同一个资源的问题，如果没有并发就不需要隔离级别。因为并发的出现就需要加锁，而并发又分为三类
 - 读读并发：没有任何问题
 - 读写并发：这个类别最重要，MVCC就是处理这类问题的，在这种场景下就会出现之前的：脏读，不可重复读，幻读的情况。在某些场景中，如果允许读和写并行，那么读操作通过MVCC进行控制，写操作通过加锁进行控制。在某些场景中，读和写不允许并行（判断银行卡余额是否足够），那么读写都加锁(这时候加锁的情况就复杂了，也就是因为这些复杂的情况才会衍生出不可重复读和幻读)。
 - 写写并发：这类只能加锁，一条记录在被写操作的时候会生成这个事务对应的锁，其他事务想要操作这个记录也需要生成锁结构，然后进行等待。这个锁结构包含两条信息，一个是表明这个锁是哪个事务，一个是表明这个锁是否需要等待。
 
+#### 锁的分类
 
-#### 日志
+- 按照对数据的操作类型：共享锁（读锁）和排他锁（写锁）
+
+```sql
+-- 注意增删改操作会自动加X锁，查询操作需要显式加锁，不过查询的时候没有显式加锁，那么就会通过MVCC来保证一致性
+-- 旧版本，共享锁
+select ... LOCK IN SHARE MODE;
+-- 8.0版本，共享锁
+select ... FOR SHARE 
+-- 排他锁
+select ... FOR UPDATE
+-- 如果获取不到就直接返回
+select ... FOR UPDATE nowiat
+-- 跳过有锁的记录，返回没有锁的记录
+select ... FOR UPDATE SKIP LOCKS
+```
+
+- 按照锁的粒度划分：表锁，行锁，页级锁
+    - 表锁：表级的S锁（共享锁）和X（排他锁）锁（这个一般为MyISAM表使用，虽然innodb也可以用但是不推荐，innodb一般使用后面的三种锁，后面的三种锁也分为S/X锁），意向锁，自增锁，MDL锁
+    1. 表锁一般不再innodb中使用，因为innodb中可以使用行锁，不过非要用也可以
+
+    ```sql
+    -- 先查看表是否有锁
+    show open tables where in_use>0;
+    -- 给表加上读锁(共享锁)，自己可读，不可泄，其他人可读不可写，自己不可操作其他表
+    lock tables table1 read
+    -- 给表加上写锁（排他锁）,自己可读可写，其他人不可读不可写，自己不可操作其他表
+    lock tables tables write;
+    -- 释放锁
+    unlock tables;
+    ```
+    2. 意向锁：由于innodb允许表锁与行锁共存，当表中某一行记录被加上行锁，那么数据库会在高一级的表锁中加上一个意向锁，表明其中有某条记录有锁，此时如果有其他事务想要加表锁就可以发现已经有锁了。如果一个事务对某行记录加上了写锁，那么表空间也会加上一个意向排他锁，如果加上的是读锁，那么表空间就会加上意向共享锁。
+    
+    ```sql
+    -- 使用以下语句进行记录行的加锁操作时，会自动为这个表加上对应的意向锁，并让这个事务获取
+    -- 这个会获取意向共享锁
+    select ... LOCK IN SHARE MODE;
+    select ... FOR SHARE 
+    -- 这个会获取意向排他锁
+    select ... FOR UPDATE
+    ```
+    
+    3. 自增锁和元数据锁（Matedata lock）：自增锁就是在向表中插入数据的时候，如果插入的列有自增属性的，就会自动申请自增锁，这个是表锁。元数据锁，一般情况下，innodb表进行增删改查操作时会添加MDL读锁（自动），但是如果进行表结构修改的时候添加MDL写锁，修改表结构时会自动申请。
+
+    - 行锁：Record lock，Gap lock，Next-Key lock，插入意向锁
+    1. 记录锁（Record lock）：顾名思义就是在某条记录上加上锁，官方名称：LOCK_REC_NOT_GAP,记录锁也分为S锁和X锁
+
+    ```sql
+    -- 添加S锁记录所=锁
+    select * from table1 where id=1 lock in share mode ;
+    -- 添加X锁记录所
+    select * from table1 where id=1 for update;
+    update table1 set name='asd' where id =1; 
+    ```
+
+    2. 间隙锁（Gap lock）：官方名称为：LOCAK_GAP，这个锁就是在某些空间中加上锁，因此不区别S/X,不同的事务可以重复添加间隙锁(相互之间会有影响，两个事务同时持有同一个间隙锁，如果同时进行插入操作会造成死锁，此时会选择一个成本较低的事务直接进行回滚，让另一个事务成功),只有在隔离级别为可重复读的情况下有有效，因为如果都不可重复读，那么肯定不支持间隙锁，间隙锁的存在就是为了解决不可重复读的问题。
+
+    ```sql
+    -- 如果id=3到id=8之间没有数据，那么以下的语句会添加(3，8）间隙锁,注意读写锁是互斥的
+    select * from table1 where id =5 lock in share mode;
+    -- 由于上方的sql添加了间隙锁，因此下面的sql执行会阻塞
+    insert into table1(id,name) values(6,'lujie');
+    ```
+    3. 临键锁（Next-Key lock）：临键锁相当于记录锁与间隙锁的集合，
+    ```sql
+    -- 如果id=3到id=8之间没有数据，下面的锁就锁定了（3，8]
+    select * from table1 where id <=8 and id>3 for update;
+    -- 由于上方的sql添加了间隙锁，因此下面的sql执行会阻塞
+    insert into table1(id,name) values(6,'lujie');
+    ```
+    4. 插入意向锁：官方名称：LOCK_INSERT_INTENTION
+
+    ```sql
+    -- 事务1，如果id=3到id=8之间没有数据，下面的锁就锁定了（3，8]
+    select * from table1 where id <=8 and id>3 for update;
+    -- 事务2运行以下操作并阻塞，会生成一个插入意向锁，表明要插入6这条数据
+    insert into table1(id,name) values(6,'lujie');
+    -- 事务3运行以下操作并阻塞，也会生成一个插入意向锁，表明要插入7这条数据，但是与上面的事务2的插入意向锁不冲突，可以并行
+    insert into table1(id,name) values(7,'lujie');
+    -- 当事务1结束，则事务2和3会同时成功
+    ```
+
+    - 页级锁：粒度介于表锁和行锁之间，效率也介于其之间，可能limit可以触发
+
+    - 最后注意，每个层级的锁的数据是需要占用空间的，所以数量是有限制的，如果低层级的锁数量超出限制，则会升级为高级别的锁从而减少空间占用，但也会降低效率，例如频繁删除数据，可能会锁表。
+
+- 按照锁的态度划分：悲观锁，乐观锁
+    - 悲观锁是一种态度，就是不论做什么操作的时候都通过显式加锁
+    - 乐观锁就是查询的时候不显式加锁
+    - 注意通过*select ... for update*操作进行加锁的时候一定要确认使用到了索引，如果没有使用索引那么这个操作会进行全表扫描，所有扫描的记录都会被锁住
+- 按照加锁方式：隐式锁，显式锁
+    - 隐式锁：类似于插入意向锁，insert操作一般不需要锁，但是如果没有加锁，如果有别人来读取这条数据就会有问题，所以新增了插入意向锁就是隐式锁
+- 其他：全局锁，死锁
+    - 全局锁：*Flush table with read lock*
+    - 死锁：两个事务操作中形成死锁，可以通过等待超时解决，也可以通过死锁检测进行解决（检测到死锁后会回滚成本最小的事务）
+    - 如何减少死锁：
+    1. 大事务拆成小事务
+    2. 索引优化，尽量少扫描行
+    3. 尽量避免修改操作在前面
+    4. 尽量不要显式加锁
+    5. 可以考虑降低隔离级别
+- 锁的结构：锁所在事务的信息（只是指针，指向真正的事务信息），索引信息（对于行锁需要记录这个锁是哪个索引的），表锁行锁信息（判断这个锁是那种类型），type_mode（锁的模式：S/X/IX/IS/自增锁，锁类型：表锁/行锁，锁的具体信息：如果是行锁才会有这个，间隙锁/记录锁/临键锁）,其他信息（is_waiting是否在等待）   
+
+- 锁的监控
+
+```sql
+-- 查看行锁的情况
+show status like 'innodb_row_lock%'
+-- 查看所有正在运行的线程信息
+show processlist
+-- 查看正在等待锁的信息
+select * from performance_schema.data_lock_waits;
+-- 5.7版本事务和锁涉及的三张表：information_schema.INNODB_TRX/ information_schema.INNODB_LOCKS/information_schema.INNODB_LOCK_WAITS
+select * from information_schema.INNODB_TRX;
+-- 8.0版本的表为：information_schema.INNODB_TRX/performance_schema.INNODB_LOCKS/performance_schema.INNODB_LOCK_WAITS
+select * from performance_schema.INNODB_LOCKS;
+```
+
+### 日志
 
 事务有四种特性，其中隔离性时通过加锁实现的，持久性通过Redo日志实现，一致性和原子性通过Undo日志实现
 
@@ -418,7 +536,7 @@ Redo日志记录的不是具体的sql操作，而是数据页中的数据该如�
 show variables like 'log_buffer_size'
 ```
 
-2. 其次是磁盘上的文件作为实体的redo日志文件：ib_logfile0和ib_logfile1
+2. 其次是磁盘上的文件作为实体的redo日志文件：*ib_logfile0*和*ib_logfile1*
 3. 事务在运行过程中，会在内存中更新数据，随后把这个操作同步到redo日志的缓冲区，然后redo日志的缓冲区通过操作系统的命令将缓冲区的数据写入到redo日志中，最后再将内存中的操作刷到磁盘中，注意redo日志只是作为可靠性的保证，实际如果程序没有问题，最终刷入磁盘的数据还是内存中的数据不是redo日志的
 4. 根据3中的描述，可以看出最重要的就是redo缓冲区的数据写入redo日志中，只要这个步骤没有问题那么程序就不会丢失数据。因此，针对这个步骤最好是缓冲区只要有新增的操作就立即刷到redo日志。因此，mysql提供了*innodb_flush_log_at_trx_commit*参数进行配置
     - *0*：每次事务运行过程中，不论事务是否提交，redo缓存不会立即写入系统的page cache中，而page cache也不会刷到redo日志中，而是通过系统的后台线程每隔1s将redo缓存中数据刷到page cache然后立即再刷到redo日志中，所以可能会出现事务还没有提交，操作就已经到redo日志中了

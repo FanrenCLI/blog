@@ -56,6 +56,8 @@ author: Fanrencli
 
 对象包含：
 - 对象头：分为Mark word（8字节）和类元信息（8字节）
+  - Mark word中当对象处于无锁状态时如果没有调用过hashcode方法，那么对象头中不会生成hashcode,只要对象头中没有hashcode,那么在锁升级的过程中就可以升级偏向锁，但是如果调用过hashcode方法，那么对象头中就会生成hasdcode，此时如果遇到锁升级就会直接跳过偏向锁，直接升级为轻量级锁。此时hashcode会被存储在对应的monitor中。
+  - 在多线程并发的过程中，获取对象的锁就是根据对象头中记录的monitor地址，获取对象的monitor，并在monitor中记录对应的信息
 - 实例数据：类的成员变量
 - 对齐填充：补齐为8字节的倍数
 其中mark word包含对象的hashcode，分代年龄，是否偏向锁，锁标志位，偏向锁的线程
