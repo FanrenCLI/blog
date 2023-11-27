@@ -452,7 +452,7 @@ select ... FOR UPDATE SKIP LOCKS
 
     - 行锁：Record lock，Gap lock，Next-Key lock，插入意向锁
 
-      1. 记录锁（Record lock）：顾名思义就是在某条记录上加上锁，官方名称：LOCK_REC_NOT_GAP,记录锁也分为S锁和X锁
+       1. 记录锁（Record lock）：顾名思义就是在某条记录上加上锁，官方名称：LOCK_REC_NOT_GAP,记录锁也分为S锁和X锁
 
         ```sql
         -- 添加S锁记录所=锁
