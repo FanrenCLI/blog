@@ -425,16 +425,17 @@ select ... FOR UPDATE SKIP LOCKS
     - 表锁：表级的S锁（共享锁）和X（排他锁）锁（这个一般为MyISAM表使用，虽然innodb也可以用但是不推荐，innodb一般使用后面的三种锁，后面的三种锁也分为S/X锁），意向锁，自增锁，MDL锁
         1. 表锁一般不再innodb中使用，因为innodb中可以使用行锁，不过非要用也可以
 
-        ```sql
-        -- 先查看表是否有锁
-        show open tables where in_use>0;
-        -- 给表加上读锁(共享锁)，自己可读，不可泄，其他人可读不可写，自己不可操作其他表
-        lock tables table1 read
-        -- 给表加上写锁（排他锁）,自己可读可写，其他人不可读不可写，自己不可操作其他表
-        lock tables tables write;
-        -- 释放锁
-        unlock tables;
-        ```
+```sql
+-- 先查看表是否有锁
+show open tables where in_use>0;
+-- 给表加上读锁(共享锁)，自己可读，不可泄，其他人可读不可写，自己不可操作其他表
+lock tables table1 read
+-- 给表加上写锁（排他锁）,自己可读可写，其他人不可读不可写，自己不可操作其他表
+lock tables tables write;
+-- 释放锁
+unlock tables;
+```
+
         2. 意向锁：由于innodb允许表锁与行锁共存，当表中某一行记录被加上行锁，那么数据库会在高一级的表锁中加上一个意向锁，表明其中有某条记录有锁，此时如果有其他事务想要加表锁就可以发现已经有锁了。如果一个事务对某行记录加上了写锁，那么表空间也会加上一个意向排他锁，如果加上的是读锁，那么表空间就会加上意向共享锁。
 
         ```sql
