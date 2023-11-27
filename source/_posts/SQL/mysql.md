@@ -426,6 +426,7 @@ select ... FOR UPDATE SKIP LOCKS
     1. 表锁一般不再innodb中使用，因为innodb中可以使用行锁，不过非要用也可以
 
     ```sql
+
     -- 先查看表是否有锁
     show open tables where in_use>0;
     -- 给表加上读锁(共享锁)，自己可读，不可泄，其他人可读不可写，自己不可操作其他表
@@ -434,16 +435,20 @@ select ... FOR UPDATE SKIP LOCKS
     lock tables tables write;
     -- 释放锁
     unlock tables;
+
     ```
+
     2. 意向锁：由于innodb允许表锁与行锁共存，当表中某一行记录被加上行锁，那么数据库会在高一级的表锁中加上一个意向锁，表明其中有某条记录有锁，此时如果有其他事务想要加表锁就可以发现已经有锁了。如果一个事务对某行记录加上了写锁，那么表空间也会加上一个意向排他锁，如果加上的是读锁，那么表空间就会加上意向共享锁。
     
     ```sql
+
     -- 使用以下语句进行记录行的加锁操作时，会自动为这个表加上对应的意向锁，并让这个事务获取
     -- 这个会获取意向共享锁
     select ... LOCK IN SHARE MODE;
     select ... FOR SHARE 
     -- 这个会获取意向排他锁
     select ... FOR UPDATE
+
     ```
     
     3. 自增锁和元数据锁（Matedata lock）：自增锁就是在向表中插入数据的时候，如果插入的列有自增属性的，就会自动申请自增锁，这个是表锁。元数据锁，一般情况下，innodb表进行增删改查操作时会添加MDL读锁（自动），但是如果进行表结构修改的时候添加MDL写锁，修改表结构时会自动申请。
@@ -452,31 +457,41 @@ select ... FOR UPDATE SKIP LOCKS
     1. 记录锁（Record lock）：顾名思义就是在某条记录上加上锁，官方名称：LOCK_REC_NOT_GAP,记录锁也分为S锁和X锁
 
     ```sql
+
     -- 添加S锁记录所=锁
     select * from table1 where id=1 lock in share mode ;
     -- 添加X锁记录所
     select * from table1 where id=1 for update;
     update table1 set name='asd' where id =1; 
+
     ```
 
     2. 间隙锁（Gap lock）：官方名称为：LOCAK_GAP，这个锁就是在某些空间中加上锁，因此不区别S/X,不同的事务可以重复添加间隙锁(相互之间会有影响，两个事务同时持有同一个间隙锁，如果同时进行插入操作会造成死锁，此时会选择一个成本较低的事务直接进行回滚，让另一个事务成功),只有在隔离级别为可重复读的情况下有有效，因为如果都不可重复读，那么肯定不支持间隙锁，间隙锁的存在就是为了解决不可重复读的问题。
 
     ```sql
+
     -- 如果id=3到id=8之间没有数据，那么以下的语句会添加(3，8）间隙锁,注意读写锁是互斥的
     select * from table1 where id =5 lock in share mode;
     -- 由于上方的sql添加了间隙锁，因此下面的sql执行会阻塞
     insert into table1(id,name) values(6,'lujie');
+
     ```
+
     3. 临键锁（Next-Key lock）：临键锁相当于记录锁与间隙锁的集合，
+
     ```sql
+
     -- 如果id=3到id=8之间没有数据，下面的锁就锁定了（3，8]
     select * from table1 where id <=8 and id>3 for update;
     -- 由于上方的sql添加了间隙锁，因此下面的sql执行会阻塞
     insert into table1(id,name) values(6,'lujie');
+
     ```
+
     4. 插入意向锁：官方名称：LOCK_INSERT_INTENTION
 
     ```sql
+
     -- 事务1，如果id=3到id=8之间没有数据，下面的锁就锁定了（3，8]
     select * from table1 where id <=8 and id>3 for update;
     -- 事务2运行以下操作并阻塞，会生成一个插入意向锁，表明要插入6这条数据
@@ -484,6 +499,7 @@ select ... FOR UPDATE SKIP LOCKS
     -- 事务3运行以下操作并阻塞，也会生成一个插入意向锁，表明要插入7这条数据，但是与上面的事务2的插入意向锁不冲突，可以并行
     insert into table1(id,name) values(7,'lujie');
     -- 当事务1结束，则事务2和3会同时成功
+
     ```
 
     - 页级锁：粒度介于表锁和行锁之间，效率也介于其之间，可能limit可以触发
@@ -510,6 +526,7 @@ select ... FOR UPDATE SKIP LOCKS
 - 锁的监控
 
 ```sql
+
 -- 查看行锁的情况
 show status like 'innodb_row_lock%'
 -- 查看所有正在运行的线程信息
@@ -520,6 +537,7 @@ select * from performance_schema.data_lock_waits;
 select * from information_schema.INNODB_TRX;
 -- 8.0版本的表为：information_schema.INNODB_TRX/performance_schema.INNODB_LOCKS/performance_schema.INNODB_LOCK_WAITS
 select * from performance_schema.INNODB_LOCKS;
+
 ```
 
 ### 日志
@@ -533,7 +551,9 @@ Redo日志记录的不是具体的sql操作，而是数据页中的数据该如�
 1. 首先Redo日志也分为两个部分，第一部分也是内存层面的缓冲区，可以通过以下的命令查看缓冲区的大小
 
 ```sql
+
 show variables like 'log_buffer_size'
+
 ```
 
 2. 其次是磁盘上的文件作为实体的redo日志文件：*ib_logfile0*和*ib_logfile1*
