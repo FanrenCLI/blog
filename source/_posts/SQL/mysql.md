@@ -526,11 +526,31 @@ select * from information_schema.INNODB_TRX;
 select * from performance_schema.INNODB_LOCKS;
 ```
 
+#### 多版本并发控制MVCC
+
+- MVCC的实现依赖于：Read View ,Undo log ,隐藏字段
+
+- 一致性读的实现主要通过两种方式：当前读和快照读
+    - 当前读：就是加锁读，读取数据的时候进行加锁，读取到最新的数据
+    - 快照读：简单的select就是快照读，读取的时快照数据，可以实现读写并发
+
+- 隐藏字段：trx_id,roll_pointer
+    - trx_id：表中数据的隐藏字段，记录着这条数据最近改动的事务
+    - roll_pointer:表中的隐藏字段，指向前一个操作的undo日志
+- Read View:creator_trx_id,trx_ids,up_limit_id,low_limit_id
+    - creator_trx_id:创建这个Read View的事务id(表中的记录数据只有被修改的时候trx_id才会有值，查询的时候没有)
+    - trx_ids:当前事务开启时还在活跃的事务列表（没有提交的事务）
+    - up_limit_id:活跃事务中ID最小的
+    - low_limit_id:全局系统中最大的事务ID+1
+    - 主要流程：访问一条记录的时候判断这条记录的trx_id,如果等于creator_trx_id就可以访问，如果不在trx_ids列表中就可以访问，如果小于up_limit_id就可以访问，如果大于等于low_limit_id就不能访问，如果这条记录可以被访问就停止，如果不能访问就要根据roll_pointer寻找undo日志中的快照，直到找到或者没有。
+
+
+
 ### 日志
 
 事务有四种特性，其中隔离性时通过加锁实现的，持久性通过Redo日志实现，一致性和原子性通过Undo日志实现
 
-- Redo日志
+#### Redo日志
 
 Redo日志记录的不是具体的sql操作，而是数据页中的数据该如何变化，具体指定了具体页数据的修改。事务在执行的过程中，不会每个事务提交之后都会及时刷到磁盘上，但是为了防止数据的丢失，就会在事务提交之后先将事务写到Redo日志中。如果之后程序奔溃还可以进行恢复，保证了持久性。
 
@@ -549,7 +569,7 @@ show variables like 'log_buffer_size'
 
 5. redo日志文件的写入逻辑类似于一个循环队列，通过两个指针指定位置，第一个指针指定数据从哪里开始写入，第二个指针指定从哪里开始之后的空间不能覆盖
 
-- Undo日志
+#### Undo日志
 
 Undo日志在整个事务的流程中处于redo日志之前，首先将数据库数据加载到内存中，然后将要更新的数据的旧值写入到undo日志中，然后更新内存数据，然后将内存数据写入redo缓存，再写入redo日志，最后将内存数据刷入磁盘中。
 
