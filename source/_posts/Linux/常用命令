@@ -1,0 +1,48 @@
+---
+title: 常用命令
+date: 2023-11-28 13:51:20
+categories:
+  - Linux
+tags:
+  - Tcpdump
+author: Fanrencli
+---
+
+### Tcpdump
+
+示例抓包命令如下：
+1. 切换到root用户
+2. 创建目录(如：mkdir tcpdump)
+4. 进入该目录(cd tcpdump)
+5. 开始抓包 (tcpdump -i any -s 0 -C 50 -w mycap.dat port 端口 -W 50)
+
+Tcpdump参数说明：
+- `-i`:指定抓包的网卡，示例中any表示在所有网卡上抓包
+- `-s`:指定抓包的报文大小，示例中0 表示抓取完整的报文【推荐使用】；如果不设置，默认截取的报文大小是60字节
+- `-C`:启用抓包文件自动切换功能，参数单位是 M；示例中 50 表示抓包文件大小到50M以后自动切换一个新文件【注意是大写C】
+- `-w`:抓包的落地文件名【注意是小写w】
+- `port`:只抓取指定端口的报文
+- `-W`:指定抓包生成的文件个数，达到该值之后自动停止抓包【注意是大写的w】
+
+```shell
+tcpdump -i eth0   #捕获指定接口(网卡)的数据包 可通过 netstat -i查看网卡设备
+tcpdump -i eth0 -c 3   #捕获指定个数的数据包（3个数据包）
+tcpdump -A -i eth0    #用ASCII码格式输出捕获的数据包
+tcpdump -D    #显示可用的系统接口
+tcpdump -XX -i eth0   #用十六进制和ASCII码格式显示捕获的数据包
+tcpdump -w tempDump.pcap -i eth0   #把捕获的数据包写入到一个.pcap后缀的文件中
+tcpdump -r tempDump.pcap    #读取捕获数据包文件的内容
+tcpdump -n -i eth0    # 单个 n 表示不解析域名，直接显示 IP
+tcpdump -i eth0 tcp    #捕获TCP类型的数据包
+tcpdump -i eth0 port 22   #捕获指定端口（这里是22）的数据包
+tcpdump -i eth0 src 源ip地址   #捕获请求源是 192.169.12.101 的数据包
+tcpdump -i eth0 dst 目标ip地址   #捕获指定目的IP的数据包
+tcpdump -i eth6 dst host 目标ip地址 and port 8800 -w data.pcap  #抓取指定网卡，指定IP和端口的数据包 并写入到data.pcap文件中
+tcpdump host 192.168.12.101 and 192.168.1.201 -w out &  #后台抓取两主机之间的数据
+tcpdump -nn 单个 n 表示不解析域名，直接显示 IP；两个 n 表示不解析域名和端口。这样不仅方便查看 IP 和端口号，而且在抓取大量数据时非常高效，因为域名解析会降低抓取速度
+```
+
+特别说明：
+tcpdump也支持丰富的过滤条件设置，具体也可以参考前述的“过滤条件设置”小节的说明；
+tcpdump抓包开始之后，通过ctrl+c 命令停止抓包
+示例是开启自动切换抓包文件的方法，实际使用中可以根据实际需求调整参数值【比如可以指定通信的网卡、ip地址等】；也可以自行进行删减，因为短时间的抓包不需要切割文件。
