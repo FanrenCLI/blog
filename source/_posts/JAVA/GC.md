@@ -217,22 +217,22 @@ Heap
 - jstat:查看JVM统计信息
   - `jstat -<options> [-t] [-h<lines>] <vmid> [<interval> [<count>]]`
   - `options`: 参数可选项有多种，其中包括：-class/-compiler/-printcompilation/-gc
-  - `jps -class <PID>`:*load*加载的类数量和字节数，*unload*卸载的类的数量和字节数，*Time*花费的时间
+  - `jstat -class <PID>`:*load*加载的类数量和字节数，*unload*卸载的类的数量和字节数，*Time*花费的时间
   ![P1](http://39.106.34.39:4567/jps1.png)
-  - `jps -class <PID> <interval>`:每隔多少毫秒打印一次
+  - `jstat -class <PID> <interval>`:每隔多少毫秒打印一次
   ![P2](http://39.106.34.39:4567/image.png)
-  - `jps -class <PID> <interval> <count>`:每隔多少毫秒打印一次,一共打印多少次
+  - `jstat -class <PID> <interval> <count>`:每隔多少毫秒打印一次,一共打印多少次
   ![P3](http://39.106.34.39:4567/image-1.png)
-  - `jps -class -t <PID>`:新增时间列，表示程序启动到输出信息的总时间
+  - `jstat -class -t <PID>`:新增时间列，表示程序启动到输出信息的总时间
   ![P4](http://39.106.34.39:4567/image-2.png)
-  - `jps -class -t -h3 <PID> <interval> <count>`:周期性输出信息时每个3行打印一行表头
+  - `jstat -class -t -h3 <PID> <interval> <count>`:周期性输出信息时每个3行打印一行表头
   ![P5](http://39.106.34.39:4567/image-3.png)
-  - `jps -compiler <PID>`:程序启动JIT编译的数量，失败的数量，不合法的数量，耗时
+  - `jstat -compiler <PID>`:程序启动JIT编译的数量，失败的数量，不合法的数量，耗时
   ![P6](http://39.106.34.39:4567/image-4.png)
-  - `jps -printcompilation <PID>`:输出已经被JIT编译的方法
-  - `jps -gc <PID>`:输出当前内存空间的使用情况：EC伊甸园区容量/EU伊甸园区使用量/S0C幸存者1容量/S0U幸存者1使用量/S1C/S1U/OC老年代容量/OU老年代使用量/MC方法区容量/MU方法区使用量/YGC年轻代GC次数/YGCT年轻代GC耗时/FGC老年代GC次数/FGCT老年代GC时间/GCT所有的GC耗时
+  - `jstat -printcompilation <PID>`:输出已经被JIT编译的方法
+  - `jstat -gc <PID>`:输出当前内存空间的使用情况：EC伊甸园区容量/EU伊甸园区使用量/S0C幸存者1容量/S0U幸存者1使用量/S1C/S1U/OC老年代容量/OU老年代使用量/MC方法区容量/MU方法区使用量/YGC年轻代GC次数/YGCT年轻代GC耗时/FGC老年代GC次数/FGCT老年代GC时间/GCT所有的GC耗时
   ![P7](http://39.106.34.39:4567/image-5.png)
-  - `jps -gcutil -t -h10 <PID> 5000`:主要关注各个区域的使用占比
+  - `jstat -gcutil -t -h10 <PID> 5000`:主要关注各个区域的使用占比
   ![P8](http://39.106.34.39:4567/image-6.png)
 
 - jinfo:实时查看和修改JVM参数
