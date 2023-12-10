@@ -668,6 +668,7 @@ binlog format:
 - statement: 记录更新的语句，如果使用函数就默认是函数例如now(),主从复制会导致数据库表中的数据不一致，如果修改id>1的数据,从机就会大量加锁
 - ROW:记录插入的数据是啥，使用函数就不会有区别。更新id>1的表时，不会大量加锁，只会修改对应的那条数据
 - MIXED:结合上述两种，如果可以使用statement好就用statement,row好就用row，mysql会自己判断
+
 ```txt
 
 事务开始 => 写undo log并更新内存数据 => 写redo log并处于prepare状态 => 写binlog => 提交事务；redo log更新为commit状态 => 返回响应
