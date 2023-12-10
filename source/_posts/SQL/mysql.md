@@ -230,6 +230,15 @@ show warnings;
 - type:sql语句执行的类型，通常分为：system>const>eq_ref>ref>range>index>all,
 - key:sql语句执行所用到的真正的索引，区别于possible key
 - row:sql语句执行所涉及到的行数，越少越好
+- extra:
+    - Using filesort：MySQL 对数据在sql层进行了排序，而不是按照表内的索引进行排序读 取。 效率比较低
+    - Using temporary：使用临时表保存中间结果，也就是说 MySQL 在对查询结果排序时使用了临时表，常见于order by 或 group by。
+    - Using index：表示 SQL 操作中使用了覆盖索引（Covering Index），避免了访问表的数据行，效率高。
+    - Using index condition：表示 SQL 操作命中了索引，但不是所有的列数据都在索引树上，还需要访问实际的行记录。
+    - Using where：表示 SQL 操作使用了 where 过滤条件。
+    - Select tables optimized away：基于索引优化 MIN/MAX 操作或者 MyISAM 存储引擎优化 COUNT(*) 操作，不必等到执行阶段再进行计算，查询执行计划生成的阶段即可完成优化。
+    - Using join buffer (Block Nested Loop)：表示 SQL 操作使用了关联查询或者子查询，且需要进行嵌套循环计算
+
 
 
 ### 查看系统性能参数
@@ -577,3 +586,144 @@ Undo日志在整个事务的流程中处于redo日志之前，首先将数据库
 2. undo日志是逻辑回滚不是物理回滚，因为插入的数据不会物理删除，还是存在于磁盘中，只是再逻辑上进行了删除
 3. MVCC是通过undo日志实现的
 4. *innodb_undo_directory*:undo日志位置，
+
+#### 慢查询日志
+
+记录所有运行时间超过*long_query_time*的查询操作，方便进行查看优化
+
+
+#### 通用日志
+
+记录所有连接的开始时间和结束时间，以及连接发给数据库的所有指令，增删查改的所有语句都有记录
+
+```sql
+
+-- 查看通用查询日志是否开启，以及通用查询日志的路径 
+show variables like "%general%"
+-- 重新生成通用查询日志
+mysqladmin -uroot -p flush-logs;
+```
+
+#### 错误日志
+
+记录启动，运行和停止服务器的错误信息
+
+```sql
+
+-- 查询错误日志信息
+show variables like '%log_err%'
+
+```
+
+#### 二进制日志
+
+记录所有更改数据的语句，可以用于主从服务器的同步，以及数据恢复
+
+```sql
+-- 重新生成一个空的binlog日志文件
+flush logs;
+-- 查询binlog日志的情况
+show variables like '%log_bin%'
+-- 查询当前所有的binlog日志
+show binary logs
+-- 查看binlog文件中的信息,-v参数可以将二进制的修改语句显示出来
+mysqlbinlog -v 'xxx'
+-- 通过mysqlbinlog命令查询出来的内容不方便观察
+show binlog events in binlog.log from xxx limit xxx
+-- show binlog events 命令一般以Anonymous_Gtid/Query/Table map/Update_rows/Xid五个部分为一个操作
+```
+
+在mysql.ini文件中:
+
+- *log-bin=xxx*:设置binlog日志文件名称
+- *binlog_expire_logs_seconds=6000*:binlog文件的过期时间，默认30天
+- *max_binlog_size=100M*:设置binlog文件的大小，默认1G
+
+根据binlog日志内容来重新恢复数据库内容
+
+```shell
+# 指定show binlog events命令中的起始位置n，和结束位置m,再指定数据库名称（因为有很多数据库再往日志中写数据）
+# 如果没有位置信息，可以只用时间信息，--start-datetime和--stop-datetime
+mysqlbinlog --start-position=n --stop-position=m --database=xx binlog.txt | mysql -uroot -p12345 -v database1
+
+```
+
+删除binlog文件
+
+```shell
+# 删除指定日志之前的所有日志
+purge master logs to 'binlog.txt'
+purge master logs before '20230101'
+# 删除所有二进制文件
+reset master;
+```
+
+binlog的写入机制于redolog类似，其中binlog主要用于主从架构中同步数据，redolog用于数据库崩溃恢复
+- 默认的机制0：当事务开始的时候会不断将修改数据的语句记录到binlog的缓存中，然后在事务提交的时候将binlog的缓存数据刷到文件系统的page cache中，然后等操作系统自动刷到文件中
+- N：在page cache中存够了N个事务之后立即刷到日志文件中
+
+两阶段提交：事务开始的时候就会不断写入redo日志中，当事务提交的时候redo日志中还会记录最终收尾的工作，如果binlog没有成功写入，那么redo日志中会有体现，当机器奔溃恢复就会回滚没有写入binlog日志中的数据，保证主从数据一致
+
+binlog format:
+- statement: 记录更新的语句，如果使用函数就默认是函数例如now(),主从复制会导致数据库表中的数据不一致，如果修改id>1的数据,从机就会大量加锁
+- ROW:记录插入的数据是啥，使用函数就不会有区别。更新id>1的表时，不会大量加锁，只会修改对应的那条数据
+- MIXED:结合上述两种，如果可以使用statement好就用statement,row好就用row，mysql会自己判断
+```txt
+
+事务开始 => 写undo log并更新内存数据 => 写redo log并处于prepare状态 => 写binlog => 提交事务；redo log更新为commit状态 => 返回响应
+
+```
+#### 中继日志
+
+用于主从服务器架构中，从服务读取主服务器的二进制日志放在从服务器中形成中继日志，从服务器可以从中继日志中的内容来同步主服务器的内容
+
+- 中继日志只存在于从服务器中，中继日志其实和binlog没啥区别，操作和恢复命令也是一样的，不过如果重装了mysql系统使用中继日志恢复数据的时候记得改个名，保持和中继日志相同的名称
+
+#### 数据定义语句日志
+
+记录数据定义语句执行的元数据操作
+
+### 主从架构搭建
+
+如果通过虚拟机搭建主从架构，注意事项：
+- MAC需要修改
+- IP地址需要修改
+- hostname需要修改
+- mysql的UUID需要修改（在文件中auto.cnf）
+
+1. 在主机mysql配置文件中，`[mysql]`节点下配置
+
+```txt
+server-id=1
+log-bin=master-bin
+```
+
+2. 从机中同主机操作
+
+```txt
+server-id=2
+relay-log=slave-bin
+```
+
+3. 关闭防火墙或开放对应的端口
+
+4. 在主机中创建mysql用户，然后在主机中为这个用户进行授权，授主从复制的权限
+
+```sql
+-- 查询主机状态，可以获取主机从哪个binlog日志的位置开始同步哪个数据库的数据
+show master status；
+```
+
+5. 从机执行以下命令
+
+```sql
+
+-- 日志名称和文件开始位置可以通过show master status进行查询
+change  master to MASTER_HOST='主机的地址',MASTER_USER='用户',MASTER_PASSWORD='密码',MASTER_LOG_FILE='日志文件名称',MASTER_LOG_POS='文件开始位置'
+
+-- 查询从机的状态
+show slave status;
+
+-- 停止主从命令,注意停止后要再重新启动同步，需要reset master
+stop slave;
+```
