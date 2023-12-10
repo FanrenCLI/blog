@@ -196,6 +196,16 @@ Heap
 
 ## JVM调优命令
 
+- javac:编译*.java后缀的文件为class文件
+  - `javac -g test.java`:`-g`表示生成的文件中包含局部变量表
+- javap:反编译class文件
+  - `javap <options> <classes>`
+  - `javap -public test.class`:显示公共的信息
+  - `javap -p test.class`:显示高于私有的信息
+  - `javap -c test.class`:对代码进行反汇编
+  - `javap -v test.class`:输出所有附加信息（常用）
+
+
 - jps:查询当前系统中正在运行的java进程，和任务管理器中的进程ID是一致的
   - `jps -q`：只展示进程号
   - `jps -l`：展示进程对应的启动类的全路径名
