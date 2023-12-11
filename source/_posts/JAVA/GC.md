@@ -259,3 +259,93 @@ Heap
   - `jstack <PID>`
   ![P12](http://39.106.34.39:4567/image-11.png)
 
+
+### Arthas
+
+#### 安装
+
+
+```sh
+# 下载地址
+curl -O https://arthas.aliyun.com/arthas-boot.jar
+# 启动命令
+java -jar arthas-boot.jar
+# 日志路径
+cd ~/logs/arthas/
+```
+
+#### 操作命令
+
+启动完arthas后，可以选择进行进行监控，监控成功后会进入arthas的命令行界面，可以通过以下命令操作
+
+- quit/stop:其中quit命令会退出当前的客户端对其他客户端没有影响，stop则是关闭所有客户端
+
+- dashboard：查看当前进程的状态
+  - `-i 1000`: 间隔1000ms打印一次
+  - `-n 4`:总共打印4次
+
+```sh
+$ dashboard
+ID     NAME                   GROUP          PRIORI STATE  %CPU    TIME   INTERRU DAEMON
+17     pool-2-thread-1        system         5      WAITIN 67      0:0    false   false
+27     Timer-for-arthas-dashb system         10     RUNNAB 32      0:0    false   true
+11     AsyncAppender-Worker-a system         9      WAITIN 0       0:0    false   true
+9      Attach Listener        system         9      RUNNAB 0       0:0    false   true
+3      Finalizer              system         8      WAITIN 0       0:0    false   true
+2      Reference Handler      system         10     WAITIN 0       0:0    false   true
+4      Signal Dispatcher      system         9      RUNNAB 0       0:0    false   true
+26     as-command-execute-dae system         10     TIMED_ 0       0:0    false   true
+13     job-timeout            system         9      TIMED_ 0       0:0    false   true
+1      main                   main           5      TIMED_ 0       0:0    false   false
+14     nioEventLoopGroup-2-1  system         10     RUNNAB 0       0:0    false   false
+18     nioEventLoopGroup-2-2  system         10     RUNNAB 0       0:0    false   false
+23     nioEventLoopGroup-2-3  system         10     RUNNAB 0       0:0    false   false
+15     nioEventLoopGroup-3-1  system         10     RUNNAB 0       0:0    false   false
+Memory             used   total max    usage GC
+heap               32M    155M  1820M  1.77% gc.ps_scavenge.count  4
+ps_eden_space      14M    65M   672M   2.21% gc.ps_scavenge.time(m 166
+ps_survivor_space  4M     5M    5M           s)
+ps_old_gen         12M    85M   1365M  0.91% gc.ps_marksweep.count 0
+nonheap            20M    23M   -1           gc.ps_marksweep.time( 0
+code_cache         3M     5M    240M   1.32% ms)
+Runtime
+os.name                Mac OS X
+os.version             10.13.4
+java.version           1.8.0_162
+java.home              /Library/Java/JavaVir
+                       tualMachines/jdk1.8.0
+                       _162.jdk/Contents/Hom
+                       e/jre
+
+```
+
+- thread:打印当前运行的所有线程
+  - `-n 2`:cpu使用前二的线程
+  - `-i 5000`:统计5秒内cpu的使用率
+  - `-b`：查询被阻塞的线程
+- sysprop:查询或修改jvm的系统属性
+- sysenv:查看jvm的环境变量
+- heapdump:生成dump文件*heapdump testdump.hprof*
+- sc:查看jvm已经加载的类的信息*sc -d com.example.test.fanren*
+- sm:查看jvm已经加载的类方法的信息
+- jad:反编译类或方法的代码
+- mc:编译java文件为class文件
+- redefine:用本地的class文件替换已经加载的类
+
+以下是针对方法的命令
+
+- monitor:监控方法被调用的次数，失败成功等相关信息，*monitor -c 5 com.fanren.test main*
+- watch:
+- trace:跟踪方法的调用路径
+- stack:跟踪方法栈中的调用路径
+- tt:查看方法被调用的耗时*tt -t -n 5 com.fanren.test main*
+- profiler:生成火焰图
+```sh
+# 启动profiler
+profiler start
+# 获取已经采集的数量
+profiler getSamples
+# 停止，停止之后就会生成文件
+profiler stop
+
+```
