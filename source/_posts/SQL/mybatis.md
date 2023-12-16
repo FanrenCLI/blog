@@ -1,12 +1,16 @@
 ---
 title: Mybatis
-date: 2022-10-25 14:11:00
+date: 2023-12-16 14:11:00
 categories:
   - JAVA
 tags:
   - Mybatis
 author: Fanrencli
 ---
+## Mybatis高级
+
+
+## Mybatis使用
 
 ### 批量查询
 ```sql
