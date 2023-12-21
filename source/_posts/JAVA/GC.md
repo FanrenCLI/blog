@@ -323,14 +323,28 @@ java.home              /Library/Java/JavaVir
   - `-n 2`:cpu使用前二的线程
   - `-i 5000`:统计5秒内cpu的使用率
   - `-b`：查询被阻塞的线程
-- sysprop:查询或修改jvm的系统属性
-- sysenv:查看jvm的环境变量
+- sysprop:查询或修改jvm的系统属性*sysprop [java.version]*
+- sysenv:查看jvm的环境变量*sysenv [java.version]*
 - heapdump:生成dump文件*heapdump testdump.hprof*
 - sc:查看jvm已经加载的类的信息*sc -d com.example.test.fanren*
-- sm:查看jvm已经加载的类方法的信息
-- jad:反编译类或方法的代码
-- mc:编译java文件为class文件
+- sm:查看jvm已经加载的类方法的信息*sm -d com.example.test.fanren toString*
+- jad:反编译类或方法的代码*sm com.example.test.fanren*
+- mc:编译java文件为class文件*mc -c[指定classloader] 327a647b /tmp/Test.java*
 - redefine:用本地的class文件替换已经加载的类
+  - jad 命令反编译，然后可以用其它编译器，比如 vim 来修改源码
+  - mc 命令来内存编译修改过的代码
+  - 用 redefine 命令加载新的字节码
+```shell
+redefine /tmp/Test.class
+redefine -c 327a647b /tmp/Test.class /tmp/Test\$Inner.class
+redefine --classLoaderClass sun.misc.Launcher$AppClassLoader /tmp/Test.class /tmp/Test\$Inner.class
+
+# 实战操作
+jad --source-only com.example.demo.arthas.user.UserController > /tmp/UserController.java
+mc /tmp/UserController.java -d /tmp
+redefine /tmp/com/example/demo/arthas/user/UserController.class
+
+```
 
 以下是针对方法的命令
 
