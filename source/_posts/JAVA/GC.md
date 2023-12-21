@@ -349,9 +349,9 @@ redefine /tmp/com/example/demo/arthas/user/UserController.class
 以下是针对方法的命令
 
 - monitor:监控方法被调用的次数，失败成功等相关信息，*monitor -c 5 com.fanren.test main*
-- watch:
-- trace:跟踪方法的调用路径
-- stack:跟踪方法栈中的调用路径
+- watch:查看方法被调用的返回参数*watch demo.MathGame primeFactors -x 2*
+- trace:跟踪方法的调用路径*trace demo.MathGame run*
+- stack:跟踪方法栈中的调用路径*stack demo.MathGame primeFactors*
 - tt:查看方法被调用的耗时*tt -t -n 5 com.fanren.test main*
 - profiler:生成火焰图
 ```sh
@@ -360,6 +360,6 @@ profiler start
 # 获取已经采集的数量
 profiler getSamples
 # 停止，停止之后就会生成文件
-profiler stop
+profiler stop --format html
 
 ```
