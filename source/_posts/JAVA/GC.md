@@ -330,7 +330,7 @@ java.home              /Library/Java/JavaVir
 - sm:查看jvm已经加载的类方法的信息*sm -d com.example.test.fanren toString*
 - jad:反编译类或方法的代码*sm com.example.test.fanren*
 - mc:编译java文件为class文件*mc -c[指定classloader] 327a647b /tmp/Test.java*
-- redefine:用本地的class文件替换已经加载的类
+- redefine:用本地的class文件替换已经加载的类（不可以新增属性和方法，如果某个方法正在运行，此时替换不会生效）
   - jad 命令反编译，然后可以用其它编译器，比如 vim 来修改源码
   - mc 命令来内存编译修改过的代码
   - 用 redefine 命令加载新的字节码
