@@ -12,7 +12,19 @@
 5. 此时根据`package.json`中的依赖，安装好hexo，就可以使用hexo进行操作了
 6. 此外，想要在服务器中运行托管hexo还需要额外安装PM2插件
 7. 推荐选择全局安装`npm install -g pm2`
-8. 然后通过`pm2 start hexo.js`启动项目
+8. 然后通过`pm2 start hexo_run.js`启动项目
+9. 运行项目之后可以正常访问，然后通过linux自带的crontab命令做一个定时任务，每隔5分钟检查是否有更新，以下给出相关内容
+
+### crontab命令
+
+```shell
+# 通过以下命令进行crontab编辑器
+crontabl -e
+# 输入以下命令
+*/5 * * * * sh /root/blog/start_git.sh
+```
+
+
 
 ## Hexo常用命令
 
