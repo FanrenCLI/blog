@@ -334,16 +334,15 @@ java.home              /Library/Java/JavaVir
   - jad 命令反编译，然后可以用其它编译器，比如 vim 来修改源码
   - mc 命令来内存编译修改过的代码
   - 用 redefine 命令加载新的字节码
+
 ```shell
 redefine /tmp/Test.class
 redefine -c 327a647b /tmp/Test.class /tmp/Test\$Inner.class
 redefine --classLoaderClass sun.misc.Launcher$AppClassLoader /tmp/Test.class /tmp/Test\$Inner.class
-
 # 实战操作
 jad --source-only com.example.demo.arthas.user.UserController > /tmp/UserController.java
 mc /tmp/UserController.java -d /tmp
 redefine /tmp/com/example/demo/arthas/user/UserController.class
-
 ```
 
 以下是针对方法的命令
@@ -354,6 +353,7 @@ redefine /tmp/com/example/demo/arthas/user/UserController.class
 - stack:跟踪方法栈中的调用路径*stack demo.MathGame primeFactors*
 - tt:查看方法被调用的耗时*tt -t -n 5 com.fanren.test main*
 - profiler:生成火焰图
+
 ```sh
 # 启动profiler
 profiler start
@@ -361,5 +361,4 @@ profiler start
 profiler getSamples
 # 停止，停止之后就会生成文件
 profiler stop --format html
-
 ```
