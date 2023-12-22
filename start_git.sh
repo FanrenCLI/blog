@@ -12,7 +12,7 @@ flag=0
 done
 if (($flag == 0))
 then
-echo "有文件更新！~~"
+echo "有文件更新~~~"
 git pull
 hexo g
 pm2 restart all
