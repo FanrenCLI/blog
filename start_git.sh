@@ -2,6 +2,7 @@
 source /etc/profile
 source ~/.bash_profile
 log_path=git_log.txt
+cd /root/blog
 echo "begin at `date`" >$log_path
 echo "---- remote status ---------" >> $log_path
 git remote show origin >> $log_path
