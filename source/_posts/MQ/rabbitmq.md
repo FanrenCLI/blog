@@ -185,7 +185,7 @@ public class producer{
         for (int i=0; i<100; i++){
             
             /**
-             * 1.只填写交换机名称，队列名称不需要填写因为是广播模式
+             * 1.填写交换机名称，路由键以及内容
              */
             channel.basicPublish("exchange_name","white",null,("white"+i).getBytes());
             channel.basicPublish("exchange_name","black",null,("black"+i).getBytes());
@@ -199,7 +199,7 @@ public class Consumer1{
         Channel channel = RabbitMQUtils.getChannel();
         // 产生一个随机的队列，返回队列名
         String queueName = channel.queueDeclare().getQueue();
-        // 绑定交换机和队列，routingKey不需要
+        // 绑定交换机和队列，routingKey
         channel.queueBind(queueName,"exchange_name","black");
         channel.queueBind(queueName,"exchange_name","grey");
         /**
@@ -221,7 +221,7 @@ public class Consumer2{
         Channel channel = RabbitMQUtils.getChannel();
         // 产生一个随机的队列，返回队列名
         String queueName = channel.queueDeclare().getQueue();
-        // 绑定交换机和队列，routingKey不需要
+        // 绑定交换机和队列，routingKey
         channel.queueBind(queueName,"exchange_name","white");
         /**
          * 1.队列名称
@@ -264,7 +264,7 @@ public class producer{
         for (int i=0; i<100; i++){
             
             /**
-             * 1.只填写交换机名称，队列名称不需要填写因为是广播模式
+             * 1.只填写交换机名称，路由键以及内容
              */
             channel.basicPublish("exchange_name","white.white1",null,("white1"+i).getBytes());
             channel.basicPublish("exchange_name","white.white2",null,("white2"+i).getBytes());
@@ -278,7 +278,7 @@ public class Consumer1{
         Channel channel = RabbitMQUtils.getChannel();
         // 产生一个随机的队列，返回队列名
         String queueName = channel.queueDeclare().getQueue();
-        // 绑定交换机和队列，routingKey不需要
+        // 绑定交换机和队列，routingKey
         channel.queueBind(queueName,"exchange_name","white.#");
         /**
          * 1.队列名称

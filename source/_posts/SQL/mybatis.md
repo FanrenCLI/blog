@@ -226,7 +226,7 @@ into Student(id,name,sex) values ('005','lk','男')
 select '006','ws','女' from dual;
 ```
 
-### 窗口函数
+### 窗口函数（8.0版本）
 
 - ROW_NUMBER() over( partition by id order by name)
 
