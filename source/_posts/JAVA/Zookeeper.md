@@ -128,39 +128,57 @@ deleteall /node
 ```java
 
 public class ZkClient{
-	private String connectionString = "192.168.86.72:2181";
-	private Integer SessionTimeout = 2000;
-	public void init(){
-		Zookeeper zkclient = new Zookeeper(connectionString, SessionTimeout, new Watcher(){
-			@Override
-			@SneakyThrows
-			public void process(WatchEvent watchEvent){
-				List<String> children = zkclient.getChildren("/",true);
-				for (String item : children){
-					System.out.println(item);
-				}
-			}
-		})
-	}
-	// 创建一个节点
-	public void createNode(Zookeeper zkclient){
-		// 第一个参数:节点名称，第二个参数：节点的数据内容，第三个参数：节点的访问权限，第四个参数：创建的模式（是否是临时节点，是否带有序列）
-		zkclient.create("/lujietest","this is test content".getBytes(),Ids.OPEN_ACL_UNSAFE,CreateMode.PERSISTENT);
-	}
-	// 获取子节点信息
-	public viod getChildren(Zookeeper zkclient) throws Exception{
-		// 第一个参数：节点的名称，第二个参数是否监听此节点的变化
-		List<String> children = zkclient.getChildren("/",true);
-		for (String item : children){
-			System.out.println(item);
-		}
-	}
-	// 判断节点是否存在
-	public void exist(Zookeeper zkclient){
-		// 第一个参数：节点名称，第二个参数：是否监听此节点
-		Stat stat = zkclient.exists("/lujie",false);
-		System.out.println(stat==null?"not exist":"exist");
-	}
+    private String connectionString = "127.0.0.1:2181";
+    private Integer SessionTimeout = 2000;
+    private ZooKeeper zkclient;
+    public static void main(String[] args) {
+        ZkClient zkClient = new ZkClient();
+        zkClient.init();
+        zkClient.createNode();
+        zkClient.getChildren();
+        zkClient.exist();
+
+    }
+    @SneakyThrows
+    public void init() {
+        zkclient = new ZooKeeper(connectionString, SessionTimeout, watchedEvent -> {
+            System.out.println("================================");
+            List<String> children = null;
+            try {
+                children = zkclient.getChildren("/",true);
+            } catch (KeeperException | InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+            for (String item : children){
+                System.out.println(item);
+            }
+            System.out.println("================================");
+
+        });
+
+    }
+    // 创建一个节点
+    @SneakyThrows
+    public void createNode(){
+        // 第一个参数:节点名称，第二个参数：节点的数据内容，第三个参数：节点的访问权限，第四个参数：创建的模式（是否是临时节点，是否带有序列）
+        zkclient.create("/lujietest","this is test content".getBytes(), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
+    }
+    // 获取子节点信息
+    @SneakyThrows
+    public void getChildren() {
+        // 第一个参数：节点的名称，第二个参数是否监听此节点的变化
+        List<String> children = zkclient.getChildren("/",true);
+        for (String item : children){
+            System.out.println(item);
+        }
+    }
+    // 判断节点是否存在
+    @SneakyThrows
+    public void exist(){
+        // 第一个参数：节点名称，第二个参数：是否监听此节点
+        Stat stat = zkclient.exists("/lujietest",false);
+        System.out.println(stat==null?"not exist":"exist");
+    }
 }
 ```
 
@@ -170,75 +188,253 @@ public class ZkClient{
 // 服务端代码
 
 public class Server{
-	
-	private String connectionString = "192.168.86.72:2181";
-	private Integer SessionTimeout = 2000;
 
-	public static void main(String[] args){
-		Server server = new Server();
-		Zookeeper zkClient = server.getConnection();
-		server.regist(zkClient,args[0]);
-		// 保持线程存活
-		Thread.Sleep(1000);
-	}
+    private String connectionString = "127.0.0.1:2181";
+    private Integer SessionTimeout = 2000;
 
-	// 建立连接
-	public Zookeeper getConnection(){
-		return Zookeeper zkclient = new Zookeeper(connectionString, SessionTimeout, new Watcher(){
-			@Override
-			@SneakyThrows
-			public void process(WatchEvent watchEvent){
-			}
-		})
-	}
-	// 注册服务到zk上，其实就是创建一个节点
-	public void regist(Zookeeper zkclient, String hostName){
-		// 注意要创建临时节点且带有序列号，这样服务下线之后才会被感知到
-		zkclient.create("/Servers/"+hostName,hostName.getBytes(),Ids.OPEN_ACL_UNSAFE,CreateMode.EPHEMERAL_SEQUENTIAL);
-	}
+    public static void main(String[] args) throws InterruptedException {
+        Server server = new Server();
+        ZooKeeper zkClient = server.getConnection();
+        server.regist(zkClient,args[0]);
+        // 保持线程存活
+        Thread.sleep(Long.MAX_VALUE);
+    }
+
+    // 建立连接
+    @SneakyThrows
+    public ZooKeeper getConnection(){
+        return  new ZooKeeper(connectionString, SessionTimeout, new Watcher(){
+            @Override
+            @SneakyThrows
+            public void process(WatchedEvent watchedEvent){
+            }
+        });
+    }
+    // 注册服务到zk上，其实就是创建一个节点
+    @SneakyThrows
+    public void regist(ZooKeeper zkclient, String hostName){
+        // 注意要创建临时节点且带有序列号，这样服务下线之后才会被感知到
+        zkclient.create("/Servers/"+hostName,hostName.getBytes(), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL_SEQUENTIAL);
+    }
 }
 
 
-
 public class Client{
-	
-	private String connectionString = "192.168.86.72:2181";
-	private Integer SessionTimeout = 2000;
-
-	public static void main(String[] args){
-		Client client = new Client();
-		Zookeeper zkClient = client.getConnection();
-		client.getServers(zkClient);
-		// 保持线程存活
-		Thread.Sleep(1000);
-	}
-
-	// 建立连接
-	public Zookeeper getConnection(){
-		return Zookeeper zkclient = new Zookeeper(connectionString, SessionTimeout, new Watcher(){
-			@Override
-			@SneakyThrows
-			public void process(WatchEvent watchEvent){
-				getServers();
-			}
-		})
-	}
-
-	public void getServers(Zookeeper zkClient){
-		List<String> children = zkclient.getChildren("/Servers",true);
-		for (String item : children){
-			// 获取节点的数据内容，第一个参数：节点路径，第二个参数：是否监听，第三个参数：状态
-			byte[] date = zkClient.getData("/Servers/"+item,false,null);
-			System.out.println(new String(data));
-
-		}
-	}
+    private String connectionString = "127.0.0.1:2181";
+    private Integer SessionTimeout = 200000;
+    private ZooKeeper zkClient;
+    public static void main(String[] args) throws InterruptedException {
+        Client client = new Client();
+        client.getConnection();
+        client.getServers();
+        // 保持线程存活
+        Thread.sleep(Long.MAX_VALUE);
+    }
+    // 建立连接
+    @SneakyThrows
+    public void getConnection(){
+        zkClient = new ZooKeeper(connectionString, SessionTimeout, watchedEvent -> getServers());
+    }
+    // 获取所有服务节点
+    @SneakyThrows
+    public void getServers(){
+        System.out.println("==========================================");
+        List<String> children = zkClient.getChildren("/Servers",true);
+        for (String item : children){
+            // 获取节点的数据内容，第一个参数：节点路径，第二个参数：是否监听，第三个参数：状态
+            byte[] data = zkClient.getData("/Servers/"+item,false,null);
+            System.out.println(new String(data));
+        }
+        System.out.println("==========================================");
+    }
 } 
+
 ```
 
 - ZK实现分布式锁
 
 ```java
+public class ZkDistributeLock {
 
+    private String connectionString = "127.0.0.1:2181";
+    private Integer SessionTimeout = 2000;
+    private ZooKeeper zkclient;
+    private CountDownLatch countDownLatch = new CountDownLatch(1);
+    private CountDownLatch countDownLatchWait = new CountDownLatch(1);
+    private String waitpath;
+    private String node;
+    public static void main(String[] args) throws InterruptedException {
+
+    }
+
+    public ZkDistributeLock() throws Exception{
+        getConnection();
+        countDownLatch.await();
+        Stat exist = exist();
+        if (exist==null){
+            //创建根节点
+            zkclient.create("/lock","lockNode".getBytes(), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+        }
+    }
+
+    @SneakyThrows
+    private void getConnection(){
+        zkclient = new ZooKeeper(connectionString, SessionTimeout, new Watcher(){
+            @Override
+            @SneakyThrows
+            public void process(WatchedEvent watchedEvent){
+                // 判断是否连接成功
+                if (watchedEvent.getState() == Event.KeeperState.SyncConnected){
+                    countDownLatch.countDown();
+                }
+                // 判读是否是删除事件，并且是等待的节点被删除
+                if (watchedEvent.getType()== Event.EventType.NodeDeleted && watchedEvent.getPath().equals(waitpath)){
+                    countDownLatchWait.countDown();
+                }
+            }
+        });
+    }
+    // 加锁
+    @SneakyThrows
+    public void zkLock(String lockName){
+        // 创建节点
+        node = zkclient.create("/lock/seq-", lockName.getBytes(), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL_SEQUENTIAL);
+        List<String> children = zkclient.getChildren("/lock", false);
+        if (children.size()==1){
+            return;
+        }else{
+            // 判断节点是否是最小的节点，如果不是就监听前一个节点
+            Collections.sort(children);
+            String substring = node.substring("/lock/".length());
+            int index = children.indexOf(substring);
+            if (index==-1){
+                System.out.println("数据异常");
+            }else if( index ==0){
+                return;
+            }else{
+                waitpath = "/lock/" + children.get(index - 1);
+                zkclient.getData(waitpath, true, null);
+                countDownLatchWait.await();
+                return;
+            }
+        }
+        System.out.println("获取锁成功"+lockName);
+    }
+    // 释放锁
+    @SneakyThrows
+    public void unlock(){
+        zkclient.delete(node,-1);
+    }
+    // 判断节点是否存在
+    @SneakyThrows
+    public Stat exist(){
+        // 第一个参数：节点名称，第二个参数：是否监听此节点
+        return zkclient.exists("/lock",false);
+    }
+}
+
+public class ZktestApplication {
+
+    public static void main(String[] args) throws Exception {
+        final ZkDistributeLock zkDistributeLock = new ZkDistributeLock();
+        final ZkDistributeLock zkDistributeLock1 = new ZkDistributeLock();
+        new Thread(()->{
+            zkDistributeLock.zkLock("testlock1");
+            System.out.println("第一个获取到锁");
+            try {
+                Thread.sleep(5000);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+            zkDistributeLock.unlock();
+            System.out.println("第一个释放锁");
+        }).start();
+        new Thread(()->{
+            zkDistributeLock1.zkLock("testlock2");
+            System.out.println("第二个获取到锁");
+            try {
+                Thread.sleep(5000);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+            zkDistributeLock1.unlock();
+            System.out.println("第二个释放锁");
+        }).start();
+    }
+
+}
+
+```
+
+- 通过框架实现zk分布式锁
+
+```xml
+<dependency>
+	<groupId>org.apache.zookeeper</groupId>
+	<artifactId>zookeeper</artifactId>
+	<version>3.5.7</version>
+</dependency>
+<dependency>
+	<groupId>org.apache.curator</groupId>
+	<artifactId>curator-framework</artifactId>
+	<version>4.3.0</version>
+</dependency>
+<dependency>
+	<groupId>org.apache.curator</groupId>
+	<artifactId>curator-recipes</artifactId>
+	<version>4.3.0</version>
+</dependency>
+<dependency>
+	<groupId>org.apache.curator</groupId>
+	<artifactId>curator-client</artifactId>
+	<version>4.3.0</version>
+</dependency>
+```
+```java
+public class ZktestApplication {
+
+    public static void main(String[] args) throws Exception {
+        InterProcessMutex lock = new InterProcessMutex(getCuratorFramework(), "/lock");
+        InterProcessMutex lock1 = new InterProcessMutex(getCuratorFramework(), "/lock");
+        new Thread(new Runnable() {
+            @Override
+            @SneakyThrows
+            public void run() {
+                lock.acquire();
+                System.out.println("1-1获取锁");
+                lock.acquire();
+                System.out.println("1-2获取锁");
+                lock.release();
+                System.out.println("1-1释放锁");
+                lock.release();
+                System.out.println("1-2释放锁");
+
+            }
+        }).start();
+        new Thread(new Runnable() {
+            @Override
+            @SneakyThrows
+            public void run() {
+                lock1.acquire();
+                System.out.println("2-1获取锁");
+                lock1.acquire();
+                System.out.println("2-2获取锁");
+                lock1.release();
+                System.out.println("2-1释放锁");
+                lock1.release();
+                System.out.println("2-2释放锁");
+
+            }
+        }).start();
+    }
+
+
+    private static CuratorFramework getCuratorFramework() {
+        CuratorFramework build = CuratorFrameworkFactory.builder().connectString("127.0.0.1:2181").connectionTimeoutMs(2000).sessionTimeoutMs(2000)
+                .retryPolicy(new ExponentialBackoffRetry(3000, 3)).build();
+        build.start();
+        return build;
+    }
+}
 
 ```
