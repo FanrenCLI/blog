@@ -240,6 +240,8 @@ public class Main {
 
 ### ThreadLocal详解
 
+总的来说ThreadLocal只是一个工具类，而ThreadLocalMap是一个类似于Map的键值对：`ThreadLocalMap<ThreadLocal,value>`,为什么说是类似Map的，是因为ThreadLocalMap不是一个Map，核心是一个Entry数组，Entry对象有一个属性：Value,如何获取这个对象是通过ThreadLocal计算一个hash值作为索引获取。其中ThreadLocalMap是当前线程Thread的一个属性，所以要想保存数据，可以创建一个ThreadLocal对象，然后通过set方法可以在当前线程中保存这个Thread Local和一个值，在这个set方法中会获取当前的线程，并保存数据，而这个ThreadLocal是一个弱引用。
+
 由于一个java项目中经常需要多线程操作且线程的创建与销毁都会产生CPU开销，所以在代码开发过程中，常用线程池进行多线程的操作。因此存在大量的线程复用的情况，一个线程的生命周期较长。在Thread线程的类中
 ```java
 class Thread{
