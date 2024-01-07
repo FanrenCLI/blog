@@ -263,6 +263,7 @@ public static void main(String[] args) {
 
 ## AQS(抽象队列同步器)
 
+AQS作为锁的实现基座，锁主要面向使用者，AQS主要面向实现者。JUC框架中常用的锁：ReentrantLock，CountDownLatch，CyclicBarrier，Semaphore,ReadAndWriteLock都是基于AQS实现的锁。AQS的基本逻辑如下图所示，主要由state（资源）以及CLH队列（FIFO）组成，其中state作为资源锁，如果为0则无线程占用锁，不为0则有线程占用，且根据实现的锁的逻辑，可以用于实现可重入锁，以及信号量等类型的锁。
 
 
-
+![AQS](http://39.106.34.39:4567/lock1.png)
