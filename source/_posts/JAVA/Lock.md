@@ -155,6 +155,38 @@ try { // 申请许可
 
 }
 ```
+## LockSupport
+LockSupport是Java并发包（java.util.concurrent）中一个非常底层的线程阻塞和唤醒工具类。它通过操作线程对象的内部锁相关状态，提供了park()和unpark(Thread thread)方法来实现线程的阻塞和唤醒。
+
+- LockSupport.park()：让当前线程进入等待状态，除非有其他线程调用unpark方法将其唤醒，否则不会自动恢复执行。如果调用park时已经获取了许可（即已经被唤醒），那么该方法会立即返回。
+
+- LockSupport.unpark(Thread thread)：给予指定线程一个许可（如果之前没有许可，则会直接唤醒该线程；如果有许可则下次park时将不再阻塞）。这个方法可以用来唤醒正在park中的线程。
+
+使用LockSupport相比传统的synchronized、wait/notify或Java并发库中的高级同步组件如Semaphore、CountDownLatch等，能够实现更灵活的线程协作控制逻辑。
+
+```java
+public class LockSupportExample {
+    public static void main(String[] args) throws InterruptedException {
+        Thread t1 = new Thread(() -> {
+            System.out.println("Thread 1 started");
+            LockSupport.park();
+            System.out.println("Thread 1 resumed");
+        });
+
+        t1.start();
+
+        // 确保t1启动并调用park()
+        Thread.sleep(100);
+
+        System.out.println("Thread 2 is going to unpark t1");
+        LockSupport.unpark(t1); // 唤醒t1
+
+        // 等待t1结束
+        t1.join();
+    }
+}
+```
+
 
 ## 原子操作
 
