@@ -28,7 +28,8 @@ author: Fanrencli
 │  │              └─utils # 重点生成单测文件额工具类
 │  └─resources
 │      ├─META-INF # spring-boot-starter项目要求在此目录下必须存在spring.factories文件，用于将本文件中的相关配置交给其他项目引入
-│      │  └─resources # 如果没有引入任何前端页面的jar包（thymeleaf）,这个文件夹为默认的资源文件目录之一
+│      │  ├─resources # 如果没有引入任何前端页面的jar包（thymeleaf）,这个文件夹为默认的资源文件目录之一
+│      │  └─dubbo # 根据SPI基础，自定义的dubbo的filter需要再这个路径下面进行注册。
 │      ├─static  # 如果没有引入任何前端页面的jar包（thymeleaf）,这个文件夹为默认的资源文件目录之一
 │      │  ├─css
 │      │  ├─fonts
@@ -41,6 +42,28 @@ author: Fanrencli
                 └─freefire
 ```
 ### 代码记录
+
+- dubbo实现SPI过滤器,拦截接口
+
+```java
+@Slf4j
+@Activate(group="consumer")
+public class t2comsumerFilter implements Filter{
+
+    public Result invoke(final Invoker<?> invoker, final Invocation invocation) throws RpcException{
+        Result res = invoker.invoke(invocation)
+    }
+}
+@Slf4j
+@Activate(group="provider")
+public class t2providerFilter implements Filter{
+
+    public Result invoke(final Invoker<?> invoker, final Invocation invocation) throws RpcException{
+        Result res = invoker.invoke(invocation)
+    }
+}
+
+```
 
 - 切面请求拦截代码
 
