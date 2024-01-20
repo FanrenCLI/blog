@@ -302,7 +302,67 @@ AQS作为锁的实现基座，锁主要面向使用者，AQS主要面向实现�
 
 ### AQS实现锁代码示例
 
-```java
+以ReentrantLock为例，我们只需要实现`tryLock`和`tryRelease`方法即可。
+![MyLock](http://39.106.34.39:4567/lock2.jpg)
 
+```java
+package com.example.mylock;
+import java.util.concurrent.locks.AbstractQueuedSynchronizer;
+
+public class MyLock {
+    private Sync sync = new Sync();
+
+    public boolean lock(){
+        return sync.tryAcquire(1);
+    }
+    public boolean unlock(){
+        return sync.tryRelease(0);
+    }
+    public boolean tryLock(){
+        return sync.tryAcquire(1);
+    }
+    public boolean isLock(){
+        return sync.isLocked();
+    }
+    public boolean isHeldByCurrentThread() {
+        return sync.isHeldExclusively();
+    }
+    private static  class Sync extends AbstractQueuedSynchronizer{
+        protected Sync() {
+            super();
+        }
+
+        @Override
+        protected boolean tryAcquire(int acquires) {
+            // 首先尝试枷锁，然后设置独占线程
+            if (compareAndSetState(0, acquires)) {
+                setExclusiveOwnerThread(Thread.currentThread());
+                return true;
+            }
+            return false;
+        }
+
+        // 释放锁，将状态设置为0，应当判断是否当前线程，并将独占线程设置为null
+        @Override
+        protected boolean tryRelease(int releases) {
+            if (getState() == 0) {
+                throw new IllegalMonitorStateException();
+            }
+            setExclusiveOwnerThread(null);
+            setState(0);
+            return true;
+        }
+        protected boolean isLocked(){
+            if (getState()!=0)
+                return true;
+            return false;
+        }
+
+        @Override
+        protected boolean isHeldExclusively() {
+            return getExclusiveOwnerThread() == Thread.currentThread();
+        }
+    }
+}
 
 ```
