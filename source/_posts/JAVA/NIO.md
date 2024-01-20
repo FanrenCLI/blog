@@ -117,9 +117,7 @@ allocate.clear();
 allocate.put("this is test content".getBytes());
 // 写入数据之后重置pos位置和linmit位置
 allocate.flip();
-while (allocate.hasRemaining()){
-    channel.write(allocate);
-}
+channel.write(allocate);
 channel.close();
 accessFile.close();
 ```
@@ -172,6 +170,7 @@ serverSocketChannel.close();
 ```java
 //        SocketChannel socketChannel = SocketChannel.open(new InetSocketAddress(8088));
 SocketChannel socketChannel = SocketChannel.open();
+// connect方法是客户端主动连接方法，服务端一般用bind方法进行监听客户端的连接，如果客户端使用了bind方法，那么则指定从哪个端口发出请求，如果不指定则有客户端随机选择
 socketChannel.connect(new InetSocketAddress(8088));
 // 连接校验
 System.out.println(socketChannel.isOpen()&&socketChannel.isConnected());
