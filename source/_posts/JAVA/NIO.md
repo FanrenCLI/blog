@@ -314,6 +314,10 @@ map.put(1,(byte)55);
 fc.close();
 ```
 
+### Selector
+
+`Selector`作为NIO中最关键的多路复用的实现，可以通过一个线程来管理多个通道channel，而通道是否可以注册到选择其中的关键就是这个通道是否继承实现了SelectableChannel，只有继承或实现了这个抽象类才能被`Selector`管理。
+
 ### NIO服务器端
 
 ```java
