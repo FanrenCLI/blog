@@ -220,6 +220,99 @@ datagramChannel.write(new ByteBuffer[]{byteBuffer,byteBuffer2});
 
 ### Buffer
 
+buffer使用之前一般遵循以下步骤：
+- 在写入数据之前需要`clear()`方法将游标放置于起始位置，将终点放置于容量大小的位置
+- 由于在读取数据之前肯定进行过写入数据，因此需要`flip()`方法将终点放置于游标当前的位置，将游标放置于起始位置。
+- `compact()`方法先判断当前数据是否已经全都读取完成，如果没有读取完，则将剩下的数据移动到最前端，并清除已经读取的数据
+
+
+```java
+IntBuffer intBuffer = IntBuffer.allocate(8);
+for (int i = 0; i < intBuffer.capacity(); i++) {
+    intBuffer.put(2*(i+1));
+}
+intBuffer.flip();
+while (intBuffer.hasRemaining()){
+    // get()方法一次读取一个字节
+    System.out.println(intBuffer.get()+"->");
+}
+```
+
+- Buffer中三大属性：Position,limit,Capacity
+
+Buffer可以看作为一段连续的内存地址，在读模式中，position作为游标起始位置，指定了读取数据从哪里开始，每读取一次数据之后position都会向后移动，直到等于limit就是终点，limit指定了读到哪里是终点，capacity指定了整个缓存的大小。在写模式中，position也是作为游标指定了写入数据从哪里开始，limit也作为写数据的终点，当然一般limit等于capacity。
+
+- 向Buffer中写入数据的两种方式：
+    - 通过`put()`方法写入数据
+    - 通过`channel.read(buffer)`写入数据
+- 从buffer中读取数据的两种方式：
+    - 通过`get()`方法读取数据
+    - 通过`channel.write(buffer)`方法读取数据
+
+- `rewind()`:将position设置为0，表示可以重新从头读取数据，或者重新从头写入数据
+- `mark()`：将当前的position作一个标记，后续可以通过`reset()`方法将position重置为这个标记位置
+
+- 缓冲区分片
+
+```java
+
+ByteBuffer byteBuffer = ByteBuffer.allocate(20);
+for (int i = 0; i < byteBuffer.capacity(); i++) {
+    byteBuffer.put((byte)i);
+}
+byteBuffer.position(3);
+byteBuffer.limit(10);
+// 分片中的数据与原缓冲区共享
+ByteBuffer slice = byteBuffer.slice();
+for (int i = 0; i < slice.capacity(); i++) {
+    slice.put((byte)(i*10));
+}
+byteBuffer.position(0);
+byteBuffer.limit(byteBuffer.capacity());
+while(byteBuffer.hasRemaining()){
+    System.out.print(byteBuffer.get()+"->");
+}
+
+```
+
+- 只读缓冲区
+
+```java
+
+ByteBuffer byteBuffer = ByteBuffer.allocate(20);
+for (int i = 0; i < byteBuffer.capacity(); i++) {
+    byteBuffer.put((byte)i);
+}
+// 只读缓冲区的数据也是共享的
+ByteBuffer slice = byteBuffer.asReadOnlyBuffer();
+byteBuffer.clear();
+for (int i = 0; i < 10; i++) {
+    byteBuffer.put(i,(byte)(i*10));
+}
+slice.clear();
+while(slice.hasRemaining()){
+    System.out.print(slice.get()+"->");
+}
+
+```
+
+- 直接缓冲区：JDK将尽量直接使用操作系统的IO操作进行读写数据更快
+
+```java
+//使用方法与其他类似
+ByteBuffer byteBuffer = ByteBuffer.allocateDirect(20);
+```
+
+- 内存映射缓冲区
+
+```java
+RandomAccessFile accessFile = new RandomAccessFile("3.txt","rw");
+FileChannel fc = accessFile.getChannel();
+MappedByteBuffer map = fc.map(FileChannel.MapMode.READ_WRITE, 0, 128);
+map.put(0,(byte)127);
+map.put(1,(byte)55);
+fc.close();
+```
 
 ### NIO服务器端
 
