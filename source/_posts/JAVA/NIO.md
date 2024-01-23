@@ -316,7 +316,7 @@ fc.close();
 
 ### Selector
 
-`Selector`作为NIO中最关键的多路复用的实现，可以通过一个线程来管理多个通道channel，而通道是否可以注册到选择其中的关键就是这个通道是否继承实现了SelectableChannel，只有继承或实现了这个抽象类才能被`Selector`管理。
+`Selector`作为NIO中最关键的多路复用的实现，可以通过一个线程来管理多个通道channel，而通道是否可以注册到选择其中的关键就是这个通道是否继承实现了SelectableChannel，只有继承或实现了这个抽象类才能被`Selector`管理。此外，通道还需要是非阻塞类型，否则会报错。
 
 ### NIO服务器端
 
