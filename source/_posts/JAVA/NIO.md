@@ -78,7 +78,7 @@ public interface Channel extends Closeable {
 - `close()`:关闭通道
 - `size()`:获取通道关联的文件的大小
 - `position()`:获取通道当前关联文件的游标位置
-- `position(Long pos)`:设置游标pos位置，从文件的某个文职开始读取或写入数据
+- `position(Long pos)`:设置游标pos位置，从文件的某个位置开始读取或写入数据
 - `truncate(int size)`:截取文件大小
 - `force(boolean bool)`:将通道中尚未写入磁盘的数据强制写入磁盘，bool参数决定是否同时写入元数据（权限信息）
 - `transferTo(position，count，tochannel)`:将数据从某个文件的通道传输到另一个文件的通道
@@ -318,54 +318,83 @@ fc.close();
 
 `Selector`作为NIO中最关键的多路复用的实现，可以通过一个线程来管理多个通道channel，而通道是否可以注册到选择其中的关键就是这个通道是否继承实现了SelectableChannel，只有继承或实现了这个抽象类才能被`Selector`管理。此外，通道还需要是非阻塞类型，否则会报错。
 
-### NIO服务器端
-
 ```java
-public class NIO {
-    public static void main(String[] args) throws IOException{
-        ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
-        serverSocketChannel.configureBlocking(false);
-        serverSocketChannel.bind(new InetSocketAddress(9999));
-        System.out.println("NIO server has start on port " + serverSocketChannel.getLocalAddress());
-        ServerSocketChannel serverSocketChannel1 = ServerSocketChannel.open();
-        serverSocketChannel1.configureBlocking(false);
-        serverSocketChannel1.bind(new InetSocketAddress(8888));
-        System.out.println("NIO server has start on port " + serverSocketChannel1.getLocalAddress());
+ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
+// 必须是非阻塞
+serverSocketChannel.configureBlocking(false);
+serverSocketChannel.bind(new InetSocketAddress(9999));
+System.out.println("NIO server has start on port " + serverSocketChannel.getLocalAddress());
+ServerSocketChannel serverSocketChannel1 = ServerSocketChannel.open();
+serverSocketChannel1.configureBlocking(false);
+serverSocketChannel1.bind(new InetSocketAddress(8888));
+System.out.println("NIO server has start on port " + serverSocketChannel1.getLocalAddress());
 
-        Selector selector = Selector.open();
-        serverSocketChannel1.register(selector,SelectionKey.OP_ACCEPT);
-        serverSocketChannel.register(selector,SelectionKey.OP_ACCEPT);
-        ByteBuffer byteBuffer = ByteBuffer.allocate(1024);
-        while (true){
-            int select = selector.select();
-            if(select==0){
-                continue;
-            }
-            Set<SelectionKey> selectionKeys = selector.selectedKeys();
-            Iterator<SelectionKey> iter = selectionKeys.iterator();
-            while (iter.hasNext()){
-                SelectionKey selectionKey = iter.next();
-                if(selectionKey.isAcceptable()){
-                    ServerSocketChannel channel = (ServerSocketChannel) selectionKey.channel();
-                    SocketChannel socketChannel = channel.accept();
-                    System.out.println("connection from " +socketChannel.getRemoteAddress());
+// 开启selector
+Selector selector = Selector.open();
+// 注册通道，服务端通道只能注册accept类型，客户端通道可以注册read，write。
+serverSocketChannel1.register(selector,SelectionKey.OP_ACCEPT);
+serverSocketChannel.register(selector,SelectionKey.OP_ACCEPT);
+ByteBuffer byteBuffer = ByteBuffer.allocate(1024);
+while (true){
+    // 阻塞判断是否有通道状态就绪，还可以select(long time)阻塞一段时间,selectNow()非阻塞
+    int select = selector.select();
+    if(select==0){
+        continue;
+    }
+    //获取所有状态就绪通道
+    Set<SelectionKey> selectionKeys = selector.selectedKeys();
+    Iterator<SelectionKey> iter = selectionKeys.iterator();
+    // 循环处理
+    while (iter.hasNext()){
+        SelectionKey selectionKey = iter.next();
+        if(selectionKey.isAcceptable()){
+            ServerSocketChannel channel = (ServerSocketChannel) selectionKey.channel();
+            SocketChannel socketChannel = channel.accept();
+            System.out.println("connection from " +socketChannel.getRemoteAddress());
 
-                    socketChannel.configureBlocking(false);
-                    socketChannel.register(selector,SelectionKey.OP_READ);
-                }
-                if(selectionKey.isReadable()){
-                    SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
-                    socketChannel.read(byteBuffer);
-                    String request = new String(byteBuffer.array()).trim();
-                    byteBuffer.clear();
-                    System.out.println(String.format("From %s : %s ",socketChannel.getRemoteAddress(),request));
-                    String response = "From NIOserver "+request +"\n";
-                    socketChannel.write(ByteBuffer.wrap(response.getBytes()));
-
-                }
-                iter.remove();
-            }
+            socketChannel.configureBlocking(false);
+            socketChannel.register(selector,SelectionKey.OP_READ);
         }
+        if(selectionKey.isReadable()){
+            SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
+            socketChannel.read(byteBuffer);
+            String request = new String(byteBuffer.array()).trim();
+            byteBuffer.clear();
+            System.out.println(String.format("From %s : %s ",socketChannel.getRemoteAddress(),request));
+            String response = "From NIOserver "+request +"\n";
+            socketChannel.write(ByteBuffer.wrap(response.getBytes()));
+
+        }
+        iter.remove();
     }
 }
+```
+
+### Pipe
+
+```java
+// 打开管道
+Pipe pipe = Pipe.open();
+//写入数据管道
+Pipe.SinkChannel sink = pipe.sink();
+sink.write(ByteBuffer.wrap("this is test".getBytes()));
+// 读取数据管道
+Pipe.SourceChannel source = pipe.source();
+ByteBuffer byte1 = ByteBuffer.allocate(1024);
+source.read(byte1);
+
+```
+
+### FileLock
+
+```java
+FileChannel f = FileChannel.open(Paths.get("1.txt"), StandardOpenOption.WRITE, StandardOpenOption.APPEND);
+// 追加模式
+f.position(f.size()-1);
+FileLock lock = f.lock();
+f.write(ByteBuffer.wrap("this is test".getBytes()));
+// 释放锁
+lock.release();
+f.close();
+
 ```
