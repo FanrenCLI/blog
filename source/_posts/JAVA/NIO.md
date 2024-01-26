@@ -403,5 +403,146 @@ f.close();
 
 ```java
 // 服务端代码
+package chat;
+
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
+import java.nio.channels.*;
+import java.nio.charset.StandardCharsets;
+import java.util.Iterator;
+import java.util.Set;
+
+public class ChatServer {
+
+    public static void ServerStart() throws IOException {
+        Selector selector = Selector.open();
+
+        ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
+        serverSocketChannel.configureBlocking(false);
+        serverSocketChannel.bind(new InetSocketAddress(8088));
+        serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
+
+        while(true){
+            int count = selector.select();
+            if (count==0){
+                continue;
+            }
+            System.out.println("=====有消息来源======");
+            Set<SelectionKey> selectionKeys = selector.selectedKeys();
+            Iterator<SelectionKey> iterator = selectionKeys.iterator();
+            while(iterator.hasNext()){
+                SelectionKey next = iterator.next();
+                if (next.isAcceptable()){
+                    System.out.println("客户端发起连接");
+                    OperateAccept(next.channel(),selector);
+                }
+                if (next.isReadable()){
+                    operateRead((SocketChannel)next.channel(),selector);
+                }
+                iterator.remove();
+            }
+        }
+    }
+
+    private static void operateRead(SocketChannel socketChannel, Selector selector) throws IOException {
+
+        ByteBuffer byteBuffer = ByteBuffer.allocate(1024);
+        byteBuffer.clear();
+        assert socketChannel != null;
+        socketChannel.read(byteBuffer);
+        byteBuffer.flip();
+        String s = String.valueOf(StandardCharsets.UTF_8.decode(byteBuffer));
+        System.out.println("接收到客户端信息->"+s);
+        Set<SelectionKey> selectionKeys = selector.keys();
+        for (SelectionKey item : selectionKeys) {
+            SelectableChannel channel1 = item.channel();
+            if (channel1!=socketChannel && channel1 instanceof SocketChannel){
+                System.out.println("服务端发送消息"+s);
+                ((SocketChannel) channel1).write(StandardCharsets.UTF_8.encode(s));
+            }
+        }
+    }
+
+    private static void OperateAccept(SelectableChannel channel, Selector selector) throws IOException {
+        SocketChannel socketChannel = null;
+        if (channel instanceof ServerSocketChannel) {
+            socketChannel = ((ServerSocketChannel) channel).accept();
+            socketChannel.configureBlocking(false);
+            socketChannel.register(selector,SelectionKey.OP_READ);
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+        ServerStart();
+    }
+}
+
+
+
+```
+
+```java
+package chat;
+
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
+import java.nio.channels.SelectableChannel;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.nio.channels.SocketChannel;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.Iterator;
+import java.util.Scanner;
+import java.util.Set;
+
+public class ChatClient {
+
+    public static void ClientStart() throws IOException {
+        SocketChannel channel  = SocketChannel.open();
+        channel.connect(new InetSocketAddress(8088));
+        channel.configureBlocking(false);
+        Selector selector = Selector.open();
+        channel.register(selector, SelectionKey.OP_READ);
+        new Thread(()->{
+            try {
+                ByteBuffer byteBuffer = ByteBuffer.allocate(1024);
+                while(true){
+                    int select = selector.select();
+                    if (select==0) continue;
+                    Set<SelectionKey> selectionKeys = selector.selectedKeys();
+                    Iterator<SelectionKey> iterator = selectionKeys.iterator();
+                    while (iterator.hasNext()){
+                        SelectionKey next = iterator.next();
+                        if (next.isReadable()){
+                            byteBuffer.clear();
+                            SocketChannel channel1 = (SocketChannel)next.channel();
+                            channel1.read(byteBuffer);
+                            byteBuffer.flip();
+                            System.out.println(StandardCharsets.UTF_8.decode(byteBuffer));
+                        }
+                        iterator.remove();
+                    }
+                }
+            } catch (Exception e) {
+                System.out.println("客户端接收数据异常");
+            }
+        }).start();
+        Scanner scanner = new Scanner(System.in);
+        while (true){
+            if (scanner.hasNextLine()){
+                String s = scanner.nextLine();
+                channel.write(StandardCharsets.UTF_8.encode(s));
+            }
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+        ClientStart();
+    }
+}
+
 
 ```
