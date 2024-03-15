@@ -533,6 +533,47 @@ select * from performance_schema.data_lock_waits;
 select * from information_schema.INNODB_TRX;
 -- 8.0版本的表为：information_schema.INNODB_TRX/performance_schema.INNODB_LOCKS/performance_schema.INNODB_LOCK_WAITS
 select * from performance_schema.INNODB_LOCKS;
+-- 排查是否有事务阻塞其他线程
+SELECT locked_schema,
+locked_table,
+locked_type,
+waiting_processlist_id,
+waiting_age,
+waiting_query,
+waiting_state,
+blocking_processlist_id,
+blocking_age,
+substring_index(sql_text,"transaction_begin;" ,-1) AS blocking_query,
+sql_kill_blocking_connection
+FROM 
+( 
+SELECT 
+b.OWNER_THREAD_ID AS granted_thread_id,
+a.OBJECT_SCHEMA AS locked_schema,
+a.OBJECT_NAME AS locked_table,
+"Metadata Lock" AS locked_type,
+c.PROCESSLIST_ID AS waiting_processlist_id,
+c.PROCESSLIST_TIME AS waiting_age,
+c.PROCESSLIST_INFO AS waiting_query,
+c.PROCESSLIST_STATE AS waiting_state,
+d.PROCESSLIST_ID AS blocking_processlist_id,
+d.PROCESSLIST_TIME AS blocking_age,
+d.PROCESSLIST_INFO AS blocking_query,
+concat('KILL ', d.PROCESSLIST_ID) AS sql_kill_blocking_connection
+FROM performance_schema.metadata_locks a JOIN performance_schema.metadata_locks b ON a.OBJECT_SCHEMA = b.OBJECT_SCHEMA AND a.OBJECT_NAME = b.OBJECT_NAME
+AND a.lock_status = 'PENDING'
+AND b.lock_status = 'GRANTED'
+AND a.OWNER_THREAD_ID <> b.OWNER_THREAD_ID
+AND a.lock_type = 'EXCLUSIVE'
+JOIN performance_schema.threads c ON a.OWNER_THREAD_ID = c.THREAD_ID JOIN performance_schema.threads d ON b.OWNER_THREAD_ID = d.THREAD_ID
+) t1,
+(
+SELECT thread_id, group_concat( CASE WHEN EVENT_NAME = 'statement/sql/begin' THEN "transaction_begin" ELSE sql_text END ORDER BY event_id SEPARATOR ";" ) AS sql_text
+FROM
+performance_schema.events_statements_history
+GROUP BY thread_id
+) t2
+WHERE t1.granted_thread_id = t2.thread_id 
 ```
 
 #### 多版本并发控制MVCC
