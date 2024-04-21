@@ -42,7 +42,7 @@ strlen key
 append key xxxx
 # 数据库锁:设置一把锁并设置10秒过期
 setex key 10 value
-# 如果不存在就设置创建数据
+# 如果不存在就设置创建数据,存在则无效
 setnx key value
 # 先查后改
 getset key value
@@ -50,6 +50,115 @@ getset key value
 
 ### List
 
-### String
-### String
-### String
+```shell 
+# 从左侧添加数据
+lpush key value1,value2
+#从右侧添加数据
+rpush key value1,value2
+#从左侧拿出输出
+lpop key
+#从右侧拿出数据
+rpop key
+# 从左侧输出范围2-5数据
+lrange key 2 5
+# 从右侧输出范围2-5数据
+rrange key 2 5
+# 获取列表中序号对应的数据
+lindex key 0
+# 获取列表的长度
+llen key
+# 删除N个值等于v的数据
+lrem key N v
+# 截图start-end之间的数据
+ltrim key start end
+# 将列表中的数据移动到另一个列表中
+rpoplpush source target
+# 给列表某个位置改为另一个值
+lset key index value
+#在V数据之前或之后插入K
+linsert key before/after v k
+
+```
+
+### Hash
+
+```shell
+# 设置值:hset user01 name lujie age 27 sex nan 
+hset key field value
+# 获取某个属性
+hget key field
+#获取所有属性
+hgetall key
+# 修改多个属性-弃用
+hmset key field value
+# 获取多个属性
+hmget key field1 field2...
+#获取有多少个属性
+hlen key
+# 删除某个或多个属性
+hdel key field ...
+# 判断key中是否存在某个属性
+hexists key field
+# 获取所有的属性
+hkeys key
+# 获取所有属性的值
+hval key
+# 给整形数值加上number
+hincrby key field number
+# 给浮点数加上number
+hincrbyfloat key field number
+# 不存在则赋值，存在了就无效
+hsetnx key field value
+```
+
+### set
+
+```shell
+#添加多个元素
+sadd key value...
+# 遍历所有元素
+smembers key
+# 判断是否存在某个元素
+sismember key value
+#删除某个元素
+srem key value
+# 获取元素个数
+scard key
+# 随机拿出N个数据
+srandmember key N
+#随机拿出N个数据并删除
+spop key N
+# 将key1中的value移动到key2中
+smove key1 key2 value
+# 取出在set1中的元素同时不存在set2中的数据
+sdiff set1 set2
+# 取set1与set2的并集
+sunion set1 set2
+# 取set1和set2的交集
+sinter set1 set2
+# 判断set1和set2有多少个交集,limit决定返回值不能大于num，一般用于保证性能
+sintercard number_sets set1 set2 [limit num]
+```
+### Zset
+
+```shell
+#添加元素,根据分数排序
+zadd key score value[score1 value1...]
+#正序后反序返回序号在范围内的数据
+zrange/zrevrange key start stop [withscores]
+# 获取值对应的分数
+zscore key value
+# 获取集合中的数量
+zcard key
+# 删除分数为N的数据
+zrem key N
+
+```
+
+## Redis高级
+
+### 持久化
+
+#### AOF
+
+#### RDB
