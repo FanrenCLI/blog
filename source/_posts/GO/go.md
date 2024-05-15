@@ -118,28 +118,16 @@ func NewFamilyAccount() *FamilyAccount{
 }
 ```
 
+### Append函数
+
+- append函数通常用于切片追加元素，由于切片存在长度和容量，如果长度没有超过容量，则append函数会在原来的地址后面追加元素，并返回一个地址，这个地址指向原来的切片地址以及新增的元素。如果追加的元素个数超过了切片的容量，则会重新拷贝一个新的地址
 ```go
-package main
-
-import "fmt"
-
-type Writer interface {
-    Write([]byte) (int, error)
-}
-
-type StringWriter struct {
-    str string
-}
-
-func (sw *StringWriter) Write(data []byte) (int, error) {
-    sw.str += string(data)
-    return len(data), nil
-}
-
-func main() {
-    var w Writer = &StringWriter{}
-    sw := w.(*StringWriter)
-    sw.str = "Hello, World"
-    fmt.Println(sw.str)
-}
+temp1 := make([]int,3,5)
+temp1[0]=1
+temp1[1]=2
+temp1[2]=3
+// temp2指向temp1的地址同时长度比temp1多1，此时temp1的第四位是4
+temp2 := append(temp1,4)
+// temp3指向temp1的地址同时长度也是temp1多1，此时temp1的第四位是5，所以temp2的第四位也变成了5，bug就出现了
+temp3:=append(temp1,5)
 ```
