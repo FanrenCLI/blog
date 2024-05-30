@@ -159,6 +159,8 @@ zrem key N
 
 ### 持久化
 
+- AOF和RDB可以同时开启，启动时优先加载AOF数据，没有AOF则加载RDB文件。一般RDB用于备份数据库
+
 #### AOF
 
 - AOF持久化策略时通过缓冲区记录所有更新数据的操作，当达到一定的阈值后将缓冲区的数据写入AOF文件中，随着AOF文件的不断膨胀，Redis还会将AOF文件进行压缩，当服务器重启时会将AOF文件中的所有命令重新加载到服务其中运行。
@@ -250,3 +252,24 @@ exec
 - 使用方法：通过将多条命令记录到文本中，通过redis提供的--pipeline参数进行输入服务器
 - 对比原生命令（mset/mget）,原生命令是原子性，管道是非原子性，原生命令一次只能执行一种类型的命令，管道可以执行不同类型的命令，原生命令只依赖服务器，管道需要服务器和客户端一起
 - 对比事务：事务具有原子性，管道不具有原子性，管道是一次性发送所有命令，事务以一条一条发，直到exec发送完，事务执行时会阻塞其他命令，但是管道不会
+
+### 发布订阅
+
+- subscribe channel [channel...] ：订阅多个频道的消息
+- publish channel message ：向chnnel频道发布消息
+- psubscribe pattern [pattern...]：订阅消息使用通配符
+- pubsub channels:查看所有的频道列表
+- pubsub numsub [channel...] :查看某个频道有几个订阅者
+- pubsub numpat :查看使用通配符的频道数量
+- unsubscribe [channel...]：取消订阅
+
+
+### 主从复制
+
+-  info replication:查看当前的主从结构
+- slaveof no one：断开主从连接
+- slaveof ip port：成为另一个IP的从机
+- replicaof ip port：成为IP的从机
+- 主机挂掉，从机不会成为主机。从机第一次连接会全量复制(通过RDB复制，复制期间新增的数据会通过命令和RDB文件一起发送过去)，后续增量复制，从机挂掉之后重新连接，会从挂掉之前的offerset开始进行同步，从机可以连接从机，但是网络延迟就会增加
+
+![主从复制步骤](http://39.106.34.39:4567/zhucong.png)
