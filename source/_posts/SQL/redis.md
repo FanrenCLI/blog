@@ -267,9 +267,46 @@ exec
 ### 主从复制
 
 -  info replication:查看当前的主从结构
-- slaveof no one：断开主从连接
-- slaveof ip port：成为另一个IP的从机
-- replicaof ip port：成为IP的从机
-- 主机挂掉，从机不会成为主机。从机第一次连接会全量复制(通过RDB复制，复制期间新增的数据会通过命令和RDB文件一起发送过去)，后续增量复制，从机挂掉之后重新连接，会从挂掉之前的offerset开始进行同步，从机可以连接从机，但是网络延迟就会增加
+- slaveof no one：断开主从连接，变为主机
+- slaveof ip port：成为另一个IP的从机（旧版命令）
+- replicaof ip port：成为IP的从机（新版命令）
+- 主机挂掉，从机不会成为主机。从机第一次连接会全量复制(通过RDB复制，复制期间新增的数据会通过命令和RDB文件一起发送过去)，如果从机原来有数据则会被覆盖清除，后续主机会根据配置中时间间隔，每隔一段时间发送心跳确认从机是否存在，后续增量复制，从机挂掉之后重新连接，会从挂掉之前的offerset开始进行同步，从机可以连接从机，但是网络延迟就会增加
+- 缺点：从机连接从机，复制延迟，如果主机挂了，从机不会成为主机。
+- 主机接收到写命令后，在写入数据的同时会将命令写入复制缓冲区（不是复制积压缓冲区），然后复制缓冲区会发送给从机，同时将命令写入复制积压缓冲区，用于如果从机断开后重连情况下的增量同步
 
 ![主从复制步骤](http://39.106.34.39:4567/zhucong.png)
+
+### 哨兵监控
+
+- 当主机宕机后，从机无法成为主机导致无法进行写命令，此时通过哨兵监控集群状态，可以将从机切换为主机。如果没有redis集群的情况下，通过哨兵监控是一种实现高可用的有效方式
+
+- 所谓的哨兵其实也是redis服务，只是启动命令和配置文件不一样，可以在同一台机器上同时启动redis和哨兵服务，当然这只是自己平时学习可以使用。
+
+- 哨兵的配置文件大致如下：
+
+```shell
+#cd 至redis的安装目录
+cd /usr/local/redis-6.0.10
+ 
+#创建哨兵的工作目录
+mkdir -p /usr/local/redis-6.0.10/redis-sentinel-working
+ 
+#可自行vi命令编辑 sentinel_conf 
+ 
+#配置哨兵的工作目录
+sed -i "s/^dir .*/dir /usr/local/redis-6.0.10/redis-sentinel-working /"  sentinel_conf
+ 
+#配置哨兵的日志文件
+sed -i "s/^logfile .*/logfile  /usr/local/redis-6.0.10/redis-sentinel.log /" sentinel_conf
+ 
+#配置哨兵的端口号 配置文件中默认就是26379 
+sed -i "s/^port .*/port 26379 /" sentinel_conf
+ 
+#设置主节点ip 端口 mymaster 192.168.195.59 6379 2 
+sed -i "s/^sentinel monitor .*/sentinel monitor mymaster 192.168.195.59 6379  2 /" sentinel_conf
+ 
+#设置redis访问密码
+sed -i "/^sentinel monitor .*/a\\ \n\\sentinel auth-pass mymaster Test2024" sentinel_conf
+```
+
+- 启动命令：`redis-sentinel ./redis-sentinel.conf`
