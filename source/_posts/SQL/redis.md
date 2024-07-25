@@ -220,14 +220,16 @@ exec
   - multi
   - unwatch
   - watch key [key ...]
+  
 - 事务执行示例
+
   - 正常执行
 
-    ```shell
-    multi
-    xxx
-    exec  
-    ```
+  ```shell
+  multi
+  xxx
+  exec  
+  ```
   
   - 放弃事务
 
@@ -270,6 +272,7 @@ exec
 - slaveof no one：断开主从连接，变为主机
 - slaveof ip port：成为另一个IP的从机（旧版命令）
 - replicaof ip port：成为IP的从机（新版命令）
+- 主机同步数据的密码配置：`requirepass 111111`
 - 主机挂掉，从机不会成为主机。从机第一次连接会全量复制(通过RDB复制，复制期间新增的数据会通过命令和RDB文件一起发送过去)，如果从机原来有数据则会被覆盖清除，后续主机会根据配置中时间间隔，每隔一段时间发送心跳确认从机是否存在，后续增量复制，从机挂掉之后重新连接，会从挂掉之前的offerset开始进行同步，从机可以连接从机，但是网络延迟就会增加
 - 缺点：从机连接从机，复制延迟，如果主机挂了，从机不会成为主机。
 - 主机接收到写命令后，在写入数据的同时会将命令写入复制缓冲区（不是复制积压缓冲区），然后复制缓冲区会发送给从机，同时将命令写入复制积压缓冲区，用于如果从机断开后重连情况下的增量同步
@@ -281,6 +284,8 @@ exec
 - 当主机宕机后，从机无法成为主机导致无法进行写命令，此时通过哨兵监控集群状态，可以将从机切换为主机。如果没有redis集群的情况下，通过哨兵监控是一种实现高可用的有效方式
 
 - 所谓的哨兵其实也是redis服务，只是启动命令和配置文件不一样，可以在同一台机器上同时启动redis和哨兵服务，当然这只是自己平时学习可以使用。
+
+- 当主机宕机后，哨兵集群会进行投票选举一个领导者作为发起主从切换的人。投票选举的过程是Raft算法，当一个哨兵向另一个哨兵发起申请，如果另一个哨兵没有同意别人，那么就给第一个哨兵投票。领导者选举完成之后，领导者会选择一个从机作为主机，规则：先看优先级（自己再配置文件中配置，数字越小优先级越高），一样则看复制的偏移量，一样则看runid（小则主）。选举完成之后，新主机执行slaveof no one完成成为主机操作，其他从机执行slaveof成为新主机的从机
 
 - 哨兵的配置文件大致如下：
 
@@ -309,4 +314,86 @@ sed -i "s/^sentinel monitor .*/sentinel monitor mymaster 192.168.195.59 6379  2 
 sed -i "/^sentinel monitor .*/a\\ \n\\sentinel auth-pass mymaster Test2024" sentinel_conf
 ```
 
+- 其中需要重点了解的配置
+
+```shell
+#当在Redis实例中开启了requirepass foobared 授权密码这样所有连接kedis实例的客户端都要提供密码
+#设置哨兵sentinel连接主从的密码注意必须为主从设置- - 样的验证密码
+# sentine1 auth-pass <master-name> <password>
+sentine1 auth-pass mymaster MySUPER--secret-0123passwOrd
+
+#指定多少毫秒之后主节点没有应答哨兵sentine1 此时哨兵主观上认为主节点下线默认30秒
+# sentinel down-after-mi 11i seconds <master-name> <mi 11iseconds>
+sentine1 down-after-milliseconds mymaster 30000
+
+#这个配置项指定了在发生failover主备切换时最多可以有多少个slave同时对新的master进行同步，这个数字越小，完成fai lover所需的时间就越长，但是如果这个数字越大，就意味着越多的slave因为replication而 不可用。可以通过将这个值设为1来保证每次只有一个slave处于不能处理命令请求的状态。
+# sentine1 paralle1-syncs <master-name> <numslaves>
+sentine1 paralle1-syncs mymaster 1
+
+#故障转移的超时时间failover-timeout 可以用在以下这些方面:
+#1.同一个sentine1对同一 个master两次fai lover之间的间隔时间。
+#2.当一个slave从一 个错误的master那里同步数据开始计算时间。直到s1ave被纠正为向正确的master那里同步数据时。
+#3.当想要取消一个正在进行的failover所需要的时间。
+#4.当进行failover时，配置所有s1aves指向新的master所需的最大时间。不过，即使过了这个超时，slaves 依然会被正确配置为指向master,但是就不按parallel-syncs所配置的规则来了
+#默认三分钟
+# sentine1 failover-timeout <master-name> <milliseconds>
+sentine1 fai lover-timeout mymaster 180000
+
+# SCRIPTS EXECUTION
+#配置当某一事件发生时所需要执行的脚本，可以通过脚本来通知管理员，例如当系统运行不正常时发邮件通知相关人员。
+#对于脚本的运行结果有以下规则:
+#若脚本执行后返回1，那么该脚本稍后将会被再次执行，重复次数目前默认为10
+#若脚本执行后返回2，或者比2更高的一个返回值，脚本将不会重复执行。
+#如果脚本在执行过程中由于收到系统中断信号被终止了，则同返回值为1时的行为相同。
+#一个脚本的最大执行时间为60s，如果超过这个时间，脚本将会被-一个SIGKILL信号终止，之后重新执行。
+
+#通知型脚本:当sentine1有任何警告级别的事件发生时(比如说redis实例的主观失效和客观失效等等)，将会去调用这个脚本，这时这个脚本应该通过邮件，SMS等 方式去通知系统管理员关于系统不正常运行的信息。调用该脚本时，将传给脚本两个参数，一 个是事件的类型，一个是事件的描述。如果sentine1. conf配置文件中配置了这个脚本路径，那么必须保证这个脚本存在于这个路径，并且是可执行的，否则sentine1无法正常启动成功。
+#通知脚本
+# she11编程
+# sentine1 notification-script <master-name> <script-path>
+sentine1 notification-script mymaster /var/redis/notify. sh
+
+#客户端重新配置主节点参数脚本
+#当一个master由于failover而发生改变时，这个脚本将会被调用，通知相关的客户端关于master地址已经发生改变的信息。
+#以下参数将会在调用脚本时传给脚本: 
+# <master-name> <role> <state> <from-ip> <from-port> <to-ip> <to-port>
+#目前<state>总是“failover",
+# <role>是“Teader"或者"observer"中的-一个。
+#参数from-ip， from-port， to-ip，to-port是用来和旧的master和新的master(即旧的s lave)通信的
+#这个脚本应该是通用的，能被多次调用，不是针对性的。
+# sentine1 client-reconfig-script <master-name> <script-path>
+sentine1 client-reconfig-script mymaster /var/redis/reconfig.sh #一般都是由运维来配置!
+
+
+```
+
 - 启动命令：`redis-sentinel ./redis-sentinel.conf`
+
+
+### 集群模式
+
+- 哨兵模式虽然提供了故障转移，但是再选举期间无法提供写入操作，因此集群模式的出现提供了多主多从的模式，实现高可用。
+- redis集群是AP，不保证强一致性，有些情况下会丢失丢掉一些系统收到的某些命令，如果主机收到命令写入数据，写完但还未来得及同步挂掉了，那数据就没了
+
+#### 确定数据落点的算法
+
+- 哈希槽分区算法
+- 槽位：是一个逻辑概念，redis规定有16384个槽位，根据CRC16算法对key进行运算然后mod 16384，得到一个数字，这个数字再0-16384之间，集群根据节点数量等分16384个槽位，每个节点负责一段槽位，根据CRC16运算的结果决定将命令发给哪个节点运行。
+- 分片：每个redis节点就是一个分片。
+- 优点：方便扩容，缩容
+- 为什么是16483个，首先CRC16算法计算得到的是16bit的数据，所以mod的数字最大65535，如果是65535考虑到每次心跳都会包含完整插槽信息，也就有65535/8/1024=8kb的数据量，太多了，如果是16384/8/1024=2kb刚好，同时由于考虑数据同步网络延迟，一般节点数量都不超过1000，所以16384也够用，其次插槽一般通过bitmap进行数据传输，插槽的数量越少，在节点少的情况下压缩效率越高
+
+- hash算法
+- 直接通过hash(key) mod 节点数量，这样有点就是简单方便，但是缺点就是一旦宕机扩容等情况发生则数据全部打乱
+
+- 一致性hash算法，将0-2^31作为一个首位相连的圈坐标，通过一致性hash计算得到0-2^31之间的值，然后顺时针找到最近的一个redis节点，作为数据落点
+- 优点：极大程度避免的数据全部重新洗牌，缺点：如果节点ip通过一致性hash计算后分布不均，会导致数据倾斜，特别是在节点数量较少的情况下。
+
+#### 常用命令
+
+- 查看集群节点主从关系信息：cluster nodes
+- 查看集群信息：cluster info
+- 进入服务端查看节点信息：info replication
+- 查看某个key属于哪个槽位：cluster keyslot k1
+
+- 集群配置完成后，在服务端进行写入操作后，如果计算后的落点不在本服务器会提示你去其他服务器进行写入。为了避免这种情况，在客户端连接到服务端的命令中加上-c参数可以自动路由到对应的服务器。
