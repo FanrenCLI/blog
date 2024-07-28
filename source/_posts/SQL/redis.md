@@ -155,7 +155,7 @@ zrem key N
 
 ```
 
-## Redis高级
+## Redis初级
 
 ### 持久化
 
@@ -685,3 +685,28 @@ public Set<String> readZSet(String key) {
 }
 
 ```
+
+
+## Redis高级
+
+### 单线程&多线程
+
+- redis4.x之后开始支持多线程，所谓的多线程，其中执行命令还是单线程，但是删除，数据同步，备份等操作是多线程，以及客户端的IO连接也是多线程处理
+- 为啥快：1.内存操作，2.单线程无需切换上下文，3.多路复用IO，4.数据结构简单 
+- 单线程优点：1.操作快，2。无需切换上下文，3.瓶颈不在cpu，而是网络和内存
+- 单线程缺点：1.删除大key缓慢，
+
+### BigKey
+
+- keys */flushdb等操作命令，由于redis是单线程，所以耗时命令一般禁止使用，可以通过redis.conf文件中进行配置禁用
+- scan命令可以用于替换keys命令：`scan 0[cursor] match k*[pattern] 10[count] `
+- 所谓的BigKey指的是value,不是key，string类型一般不要超过10KB，hash,list,set等不要超过5000个，非字符串的数据不要用del删除，同时不要对bigkey设置自动过期时间
+- bigkey的缺点：内存不均，超时删除，网络请求阻塞
+- 如何产生？粉丝数量逐渐增加。如何发现？`redis-cli --bigkey -p -h -a`,此命令会给出每个类型的最大的数据相关信息，`memery usage key`,用于输出key所占的空间
+- 如何删除bigkey,采用渐进式删除，先通过scan命令查询数据，然后删除，不断减少列表数据量，最后删除完成。
+- 如何调优？采用非阻塞删除命令：unlink，flushall/flushdb async,或者通过conf配置文件启用惰性删除。
+
+
+### 缓存双写一致性更新策略
+
+### 
