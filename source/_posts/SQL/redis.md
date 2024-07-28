@@ -369,6 +369,18 @@ sentine1 client-reconfig-script mymaster /var/redis/reconfig.sh #一般都是由
 
 - 启动命令：`redis-sentinel ./redis-sentinel.conf`
 
+- 哨兵选举算法Raft算法
+
+Raft算法是一种基于领导者的一致性算法，它要求集群中的每个节点都有三种角色：领导者（leader）、候选者（candidate）和跟随者（follower）。领导者负责发起选举请求，候选者负责投票，跟随者负责响应领导者的指令。Raft算法的核心是选举过程，分为以下几个步骤：
+
+  - 初始化：集群启动时，所有的节点都是跟随者，没有领导者。每个节点都有一个`选举超时时间`，`随机在150ms到300ms之间`，如果在超时时间内没有收到领导者的心跳包，就会转变为候选者，开始发起选举。
+  - 发起选举：候选者会增加自己的选举轮次（term），并向其他节点发送选举请求，包含自己的选举轮次和标识。同时，候选者会给自己投一票，并重置自己的选举超时时间。
+  - 投票：跟随者收到选举请求后，会比较自己的选举轮次和候选者的选举轮次，如果自己的选举轮次更大，或者已经给其他候选者投过票，就会拒绝投票；否则，就会同意投票，并重置自己的选举超时时间。
+  - 统计票数：候选者收到投票回复后，会统计自己的票数，如果超过半数，就会成为领导者，并向其他节点发送心跳包，通知自己的领导地位；如果没有超过半数，就会继续等待投票回复，直到超时或者收到心跳包。
+  - 维持领导者：领导者会周期性地向所有跟随者发送心跳包，维持自己的领导地位，并检查跟随者的状态。如果领导者发现自己的选举轮次小于某个跟随者的选举轮次，就会认为自己的领导地位已经过期，转变为跟随者，重新开始选举超时计时。(如果掉线重新就有可能成为跟随者)
+  - 处理冲突：如果集群中出现网络分区或者节点故障，可能会导致多个候选者同时发起选举，造成选举冲突。Raft算法通过随机化选举超时时间，使得冲突的概率降低。同时，如果一个候选者收到了另一个候选者的选举请求，它会拒绝投票，并重置自己的选举超时时间。
+  - 最终，只有一个候选者能够获得多数的票数，成为领导者，结束选举。
+
 
 ### 集群模式
 
@@ -395,5 +407,281 @@ sentine1 client-reconfig-script mymaster /var/redis/reconfig.sh #一般都是由
 - 查看集群信息：cluster info
 - 进入服务端查看节点信息：info replication
 - 查看某个key属于哪个槽位：cluster keyslot k1
+- 将从机转为主机：cluster failover
+- 查看某个槽位是否已经被占用：cluter countkeysinslot 1207
 
 - 集群配置完成后，在服务端进行写入操作后，如果计算后的落点不在本服务器会提示你去其他服务器进行写入。为了避免这种情况，在客户端连接到服务端的命令中加上-c参数可以自动路由到对应的服务器。
+
+#### 集群搭建
+
+- 配置文件，一下给出配置文件常用配置，通过`redis-server xxx.conf`命令进行启动
+
+```shell
+# 修改为后台启动
+daemonize yes
+# 修改端口号
+port 8001
+# 指定数据文件存储位置
+dir /usr/local/redis-app/8001/
+# 开启集群模式
+cluster-enabled yes
+# 集群节点信息文件配置
+cluster-config-file nodes-8001.conf
+# 集群节点超时间
+cluster-node-timeout 15000
+# 去掉bind绑定地址
+# bind 127.0.0.1 -::1 (这里没写错就是家#注释掉bind配置)
+# 关闭保护模式
+protected-mode no
+# 开启aof模式持久化
+appendonly yes
+# 设置连接Redis需要密码123（选配）
+requirepass 123456
+# 设置Redis节点与节点之间访问需要密码123（选配）
+masterauth 123456
+
+```
+
+- 启动完成后，随便找个节点运行一下命令即可实现集群搭建
+
+```shell
+# -a 密码认证，若没写密码无效带这个参数
+# --cluster create 创建集群实例列表 IP:PORT IP:PORT IP:PORT
+# --cluster-replicas 复制因子1（即每个主节点需1个从节点）
+./bin/redis-cli -a 123456 --cluster create --cluster-replicas 1 192.168.100.101:8001 192.168.100.101:8002 192.168.100.102:8003 192.168.100.102:8004 192.168.100.103:8005 192.168.100.103:8006
+
+```
+
+- Redis集群选举原理
+
+  - 当slave节点发现自己的master节点变为FAIL状态时，便尝试进行Failover(故障转移)，以期成为新的master。由于挂掉的master节点可能会有多个slave节点，从而存在多个slave节点竞争成为master节点的过程。
+  - slave节点发现自己的master节点变为FAIL状态
+  - 将自己记录的集群currentEpoch加1，并广播FAILOVER_AUTH_REQUEST（会携带有currentEpoch）信息
+  - 其他节点收到该信息，只有master响应，判断请求者的合法性，并发送FAILOVER_AUTH_ACK，对每一个epoch（纪元）只发送一次ACK
+  - 尝试Failover的slave收集master返回的FAILOVER_AUTH_ACK
+  - slave收到超过半数master的ACK后变成新Master(这里解释了集群为什么至少需要三个主节点，如果只有两个，当其中一个挂了，只剩一个主节点是不能选举成功的)
+  - slave广播Pong消息通知其他集群节点
+
+- 从节点并不是在主节点一进入 FAIL 状态就马上尝试发起选举，而是有一定延迟，一定的延迟确保我们等待FAIL状态在集群中传播，slave如果立即尝试选举，其它masters或许尚未意识到FAIL状态，可能会拒绝投票
+
+  - 延迟计算公式：DELAY = 500ms + random(0 ~ 500ms) + SLAVE_RANK * 1000ms
+  - SLAVE_RANK表示此slave已经从master复制数据的总量的rank。Rank越小代表已复制的数据越新。这种方式下，持有最新数据的slave将会首先发起选举（理论上）。
+
+- 集群脑裂问题
+redis集群没有过半机制会有脑裂问题，网络抖动导致脑裂后多个主节点对外提供写服务，一旦网络环境问题恢复，会将其中一个主节点变为从节点，然后从节点会从主节点进行全量数据复制，这时主节点变成从节点前的所有数据丢失。
+- 场景：一台主机没有挂，但是网络抖动导致所有人都认为挂了，于是重新进行选举，导致出现两台主机，当网络恢复，其中原来的主机由于currentepoch较小直接变为从机，这会导致这台机器中从发生网络抖动到重新恢复之间收到的数据直接被覆盖，重新同步。可以通过过半同步配置进行避免，但是如果主机没有从节点那就无法使用。
+
+#### 集群扩容
+
+- 扩容命令
+
+```shell
+# 使用如下命令即可添加节点将一个新的节点添加到集群中
+# -a 密码认证(没有密码不用带此参数)
+# --cluster add-node 添加节点 新节点IP:新节点端口 任意存活节点IP:任意存活节点端口
+./bin/redis-cli -a 123456 --cluster add-node 192.168.100.104:8007 192.168.100.101:8001
+
+# 使用如下命令将其它主节点的分片迁移到当前节点中
+# -a 密码认证(没有密码不用带此参数)
+# --cluster reshard 槽位迁移 从节点IP:节点端口，中迁移槽位到当前节点中
+./bin/redis-cli --cluster reshard 192.168.100.101:8002
+
+# 通过以上命令将新的主机加入了集群，后续添加从节点
+
+# 使用如下命令即可添加节点将一个新的节点添加到集群中
+# -a 密码认证(没有密码不用带此参数)
+# --cluster add-node 添加节点 新节点IP:新节点端口 任意存活节点IP:任意存活节点端口
+./bin/redis-cli -a 123456 --cluster add-node 192.168.100.104:8008 192.168.100.101:8001
+
+# 连接需设为从节点的Redis服务
+./bin/redis-cli -a 123456 -p 8008
+# 将当前节点分配为 8cf44439390dc9412813ad27c43858a6bb53365c 的从节点
+CLUSTER REPLICATE 8cf44439390dc9412813ad27c43858a6bb53365c
+
+```
+
+- 缩容命令
+
+```shell
+# 首先迁移槽位
+# -a 密码认证(没有密码不用带此参数)
+# --cluster reshard 槽位迁移 从节点IP:节点端口，中迁移槽位到xxx节点中
+./bin/redis-cli --cluster reshard 192.168.100.101:8002
+
+# 执行如下命令删除节点
+# -a 密码认证(没有密码不用带此参数)
+# --cluster del-node 连接任意一个存活的节点IP:连接任意一个存活的节点端口 要删除节点ID 
+./bin/redis-cli -a 123456 --cluster del-node 192.168.100.101:8002 8cf44439390dc9412813ad27c43858a6bb53365c
+
+```
+
+
+### Spring集成Redis
+
+#### jredis
+
+- pom依赖
+
+```xml
+<dependency>
+  <groupId>redis.clients</groupId>
+  <artifactId>jedis</artifactId>
+  <version>最新版本号</version>
+</dependency>
+```
+
+- 代码示例
+
+```java
+Jedis jedis = new Jedis("IP","PORT");
+jedis.auth("PASSWORD");
+jedis.set();
+jedis.lpush();
+...
+```
+
+#### Lettuce
+
+- pom依赖
+
+```xml
+<!-- Lettuce -->
+<dependency>
+    <groupId>io.lettuce.core</groupId>
+    <artifactId>lettuce-core</artifactId>
+    <version>6.1.5.RELEASE</version>
+</dependency>
+```
+
+- 代码示例
+
+```java
+import io.lettuce.core.RedisClient;
+import io.lettuce.core.api.StatefulRedisConnection;
+import io.lettuce.core.api.sync.RedisCommands;
+ 
+public class LettuceExample {
+    public static void main(String[] args) {
+        // 连接到本地的 Redis 服务
+        RedisURI redisuri = RedisURI.Builder.redis("IP").withPort(6379).withPassword("123456").build();
+        RedisClient client = RedisClient.create(redisuri);
+        StatefulRedisConnection<String, String> connection = client.connect();
+ 
+        // 同步操作
+        RedisCommands<String, String> syncCommands = connection.sync();
+ 
+        // 设置 key-value
+        syncCommands.set("key", "value");
+ 
+        // 获取 key 对应的 value
+        String value = syncCommands.get("key");
+        System.out.println("key 对应的 value: " + value);
+ 
+        // 关闭连接
+        connection.close();
+        client.shutdown();
+    }
+}
+
+```
+
+#### RedisTemplate
+
+- pom依赖（spring自动集成lettuce,如果要使用jedis,需要手动排除lettuce）
+
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-data-redis</artifactId>
+</dependency>
+```
+
+```yml
+spring:
+  redis:
+    host: localhost
+    port: 6379
+    password: 123456
+    lettuce:
+      pool:
+        max-active: 50
+        max-idle: 20
+        max-wait: 10000ms
+      shutdown-timeout: 500ms
+# 集群节点配置
+spring:
+  redis:
+    cluster:
+    # 最大重试次数
+      max-redirects: 3 
+      nodes:
+        - 127.0.0.1:6379
+        - 127.0.0.1:6380
+        - 127.0.0.1:6381
+    database: 0
+    timeout: 5000
+    password: yourpassword
+# 动态刷新spring2.3版本之后可以只用，之前的版本可以自己手动配置一下
+spring:
+  redis:
+    lettuce:
+      cluster:
+        refresh:
+          adaptive: true
+          period: 30000    # 30秒自动刷新一次
+```
+
+- 代码示例
+
+```java
+// 默认redis配置的系列化是null,spring自动使用jdk的序列化，导致redis存储数据会存在问题，需要自己配置序列化或者直接使用StringRedisTemplate
+@Autowired
+private StringRedisTemplate redisTemplate;
+ 
+public void saveString(String key, String value) {
+    ValueOperations<String, String> ops = redisTemplate.opsForValue();
+    ops.set(key, value);
+}
+ 
+public String readString(String key) {
+    ValueOperations<String, String> ops = redisTemplate.opsForValue();
+    return ops.get(key);
+}
+ 
+public void saveObject(String key, Object value) {
+    redisTemplate.opsForValue().set(key, value);
+}
+ 
+public Object readObject(String key) {
+    return redisTemplate.opsForValue().get(key);
+}
+
+public void saveHash(String hashKey, String key, String value) {
+    HashOperations<String, String, String> hashOps = redisTemplate.opsForHash();
+    hashOps.put(hashKey, key, value);
+}
+ 
+public String readHash(String hashKey, String key) {
+    HashOperations<String, String, String> hashOps = redisTemplate.opsForHash();
+    return hashOps.get(hashKey, key);
+}
+public void addToList(String key, String value) {
+    ListOperations<String, String> listOps = redisTemplate.opsForList();
+    listOps.rightPush(key, value);
+}
+ 
+public List<String> readList(String key) {
+    ListOperations<String, String> listOps = redisTemplate.opsForList();
+    return listOps.range(key, 0, -1);
+}
+public void addToZSet(String key, String value, double score) {
+    ZSetOperations<String, String> zSetOps = redisTemplate.opsForZSet();
+    zSetOps.add(key, value, score);
+}
+ 
+public Set<String> readZSet(String key) {
+    ZSetOperations<String, String> zSetOps = redisTemplate.opsForZSet();
+    return zSetOps.range(key, 0, -1);
+}
+
+```
