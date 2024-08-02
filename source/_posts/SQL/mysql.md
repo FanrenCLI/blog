@@ -769,3 +769,10 @@ show slave status;
 -- 停止主从命令,注意停止后要再重新启动同步，需要reset master
 stop slave;
 ```
+
+- 主从复制的流程：
+  1. 主机更新数据的内容写入binlog后
+  2. 从机有一个线程每隔一段时间对主机上的binlog进行探测，如果发现binlog更新了则开启一个io请求对主机的日志进行请求
+  3. 主机接收到从机的请求后，启动一个dump thread用于向从机发送日志
+  4. 从机接收到日志后保存到本地的中继日志relay log
+  5. 从机启动sql thread将中继日志中的数据进行replay
