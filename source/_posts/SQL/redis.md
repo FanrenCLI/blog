@@ -155,6 +155,48 @@ zrem key N
 
 ```
 
+### hyperlogLog
+
+```shell
+# 添加6个不重复的元素
+pfadd h01 1 2 3 4 5 6
+# 添加含有重复的元素，只会保存4个
+pfadd h02 1 2 3 3 4 4
+# 统计基数数量，即不重复的数据
+pfcount h02
+# 将h01和h02合并为一个
+pfmerge h03 h01 h02 [...]
+# 输出h03
+pfcount h03
+```
+### GEO
+```shell
+# 添加坐标
+geoadd key x y name x1 y1 name2
+# 返回位置
+geopos key name1...
+# 实际key是一个zset类型，经纬度作为分数排序
+# 获取坐标的hash
+geohash key name1
+# 获取两个位置之间的距离
+geodist key name1 name2
+# 以x,y为中心，radius半径查询附加的东西,带出距离，经纬度
+georadius key x y radius withdist withcoord count 10 desc
+```
+
+### Bitmap
+```shell
+# 给key的第offset位赋值val
+setbit key offset val
+getbit key offset 
+bitcount kye start end
+bitop operation destkey key
+
+```
+
+
+
+
 ## Redis初级
 
 ### 持久化
@@ -733,5 +775,28 @@ public Set<String> readZSet(String key) {
   
   按照主从配置流程将主机配置好，下载cannal,安装完成后，配置mysql的地址到instance.properties并且将mysql的cannal账户配置到cannal.instance.dbUsername/dbPassword。启动cannal即可。
   
+  - 配置完成对应的cannal后，代码实战可以参考官网给出的案例。
 
-### 
+### Bitmap/hyperloglog/Geo数据实战
+
+- 常见数据统计类型：聚合统计，排序统计，二值统计，基数统计
+  - 聚合统计：主要用于不同集合之间的交差并集合统计(set结构)
+  - 排序统计：主要用户评论展示,一般按照时间排序和分页展示（zset结构排序）
+  - 二值统计：集合中只用01来表示数据，通常用于打卡签到(bitmap)
+  - 基数统计：所谓基数就是集合中不重复的数据(hyperLoglog)
+
+- UV :unique vistor(独立访客)，需要去重
+- PV :page vistor(页面浏览量)
+- DAU :daily active user(日活跃用户数量)，需要去重
+- MAU: mouth active user(月活跃用户数量)
+
+- hyperloglog：用于去重统计，通过pfadd命令添加元素，如果这个元素没有则添加成功返回1，如果已经存在则返回0。原理：通过hash函数计算得到64位字节，前14位用于确定桶位置，后50位从低位往高位计算连续0的个数，作为判断是否重复的精度。
+
+- GEO:用于存储地理位置，通过redis提供的命令可以计算不同地点之间的距离，查询附近的地点，计算距离等操作
+
+- bitmap：用于计算签到，打卡等相关需求是用到的数据接口，每个bit只表示是否两种状态，数据存储量少。
+###
+
+###
+
+###
