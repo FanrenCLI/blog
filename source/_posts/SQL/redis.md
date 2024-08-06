@@ -746,7 +746,7 @@ public Set<String> readZSet(String key) {
 - bigkey的缺点：内存不均，超时删除，网络请求阻塞
 - 如何产生？粉丝数量逐渐增加。如何发现？`redis-cli --bigkey -p -h -a`,此命令会给出每个类型的最大的数据相关信息，`memery usage key`,用于输出key所占的空间
 - 如何删除bigkey,采用渐进式删除，先通过scan命令查询数据，然后删除，不断减少列表数据量，最后删除完成。
-- 如何调优？采用非阻塞删除命令：unlink，flushall/flushdb async,或者通过conf配置文件启用惰性删除。
+- 如何调优？采用非阻塞删除命令：unlink，flushall/flushdb async,或者通过conf配置文件启用惰性删除。其中unlink是主动惰性删除，通过评估删除时间决定是否采用惰性删除，unlink命令对应的key会立即删除，value会异步删除。，被动惰性删除指的是通过conf文件配置后，del命令删除时会根据配置进行判断是否惰性删除。
 
 
 ### 缓存双写一致性更新策略
@@ -835,3 +835,8 @@ public Set<String> readZSet(String key) {
 
 ### 分布式锁
 
+- 分布式锁的特点：独占性，高可用，防死锁，不乱抢，重入性
+- setnx+过期时间实现分布式锁，
+
+
+### 缓存淘汰策略
