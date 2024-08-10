@@ -838,5 +838,62 @@ public Set<String> readZSet(String key) {
 - 分布式锁的特点：独占性，高可用，防死锁，不乱抢，重入性
 - setnx+过期时间实现分布式锁，
 
+- redis手动实现分布式锁过程：
+  - 创建一个共同key和唯一的value通过setnx命令保存到redis中
+  - 如果保存失败则while循环等待重复创建
+  - 如果成功则进行业务操作
+  - 完成业务操作后查询key的value是否是自己的value，如果是则删除，不是则返回（删除过程结合lua脚本，避免非原子操作的删除）
+  - lua脚本官网结合案例学习即可
+
+- 代码示例
+  
+```java
+@Service
+public class UserServiceImpl implements UserService {
+
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
+
+    @Value("${server.port}")
+    private String port;
+
+    @Override
+    public String userInfoHandler() {
+        String retMessage = "";
+        String key = "redislock";
+        String uuidvalue = UUID.randomUUID().toString();
+        while(!stringRedisTemplate.opsForValue().setIfAbsent(key,uuidvalue, 10, TimeUnit.SECONDS)){
+
+            try {
+                Thread.sleep(200);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        try{
+            String result = stringRedisTemplate.opsForValue().get("inventory001");
+            Integer inventory = Integer.valueOf(result);
+            if (inventory>0){
+                stringRedisTemplate.opsForValue().set("inventory001",String.valueOf(inventory-1));
+                retMessage = "成功卖出一件商品，剩余库存"+(inventory-1);
+                System.out.println(retMessage+"\t"+"服务端口："+port);
+
+            }else{
+                System.out.println("库存不足，无法卖出商品，服务端口："+port);
+            }
+        }catch (Exception e){
+            e.printStackTrace();
+        }finally {
+//                if (stringRedisTemplate.opsForValue().get(key).equals(uuidvalue)){
+//                    stringRedisTemplate.delete(key);
+//                }
+            stringRedisTemplate.execute(new DefaultRedisScript<>("if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end",Long.class), Arrays.asList(key),uuidvalue);
+        }
+
+        return retMessage;
+    }
+}
+
+```
 
 ### 缓存淘汰策略
