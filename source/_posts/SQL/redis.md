@@ -896,4 +896,168 @@ public class UserServiceImpl implements UserService {
 
 ```
 
+- 锁的可重入性：原有的setnx命令虽然可以实现基本的分布式锁，但是针对锁的可重入性缺失，因此，考虑通过hash结果进行解决：hset key k1 v1
+- 通过lua脚本实现可重入锁，以及自动续期，代码示例
+
+```java
+@Component
+public class DistributedLockFactory {
+
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
+    private String lockName;
+    private String uuid;
+
+    public DistributedLockFactory(){
+        this.uuid  = UUID.randomUUID().toString();
+    }
+
+    public  Lock getDistributedLock(String lockType){
+        if("redis".equals(lockType)){
+            return new RedisDistributedLock(stringRedisTemplate,this.lockName,uuid);
+        }else if("zookeeper".equals(lockType)){
+            return null;
+        }else if("mysql".equals(lockType)){
+            return null;
+        }else{
+            return null;
+        }
+    }
+}
+
+
+
+
+public class RedisDistributedLock implements Lock {
+
+    private final String lockLua = "if redis.call('exists', KEYS[1]) == 0 or redis.call('hexists', KEYS[1], ARGV[1]) == 1 then  redis.call('hincrby', KEYS[1], ARGV[1], 1) redis.call('expire', KEYS[1], ARGV[2]) return 1 else return 0 end";
+    private final String unlocklua = "if redis.call('hexists', KEYS[1], ARGV[1]) == 0 then return nil elseif redis.call('hincrby', KEYS[1], ARGV[1], -1) == 0 then redis.call('del', KEYS[1]) return 1 else return 0 end";
+    private StringRedisTemplate stringRedisTemplate;
+    private String lockName;
+    private String uuidValue;
+    private long expireTime;
+
+
+    public RedisDistributedLock(StringRedisTemplate stringRedisTemplate, String lockName,String uuidValue) {
+        this.stringRedisTemplate = stringRedisTemplate;
+        this.lockName = lockName;
+        this.uuidValue = uuidValue+":"+Thread.currentThread().getName();
+        this.expireTime = 50L;
+    }
+
+    @Override
+    public void lock() {
+        tryLock();
+    }
+
+    @Override
+    public void lockInterruptibly() throws InterruptedException {
+
+    }
+
+    @Override
+    public boolean tryLock() {
+        try {
+            tryLock(-1L, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        return false;
+    }
+
+    @Override
+    public boolean tryLock(long time, TimeUnit unit) throws InterruptedException {
+        if (time==-1L){
+            while(!stringRedisTemplate.execute(new DefaultRedisScript<>(lockLua,Boolean.class), Collections.singletonList(lockName),uuidValue,String.valueOf(expireTime))){
+                Thread.sleep(600);
+            }
+            renewExpire();
+            return true;
+        }
+        return false;
+    }
+
+    private void renewExpire() {
+        
+        new Timer().schedule(new TimerTask() {
+            @Override
+            public void run() {
+                if (stringRedisTemplate.hasKey(lockName))
+                    stringRedisTemplate.expire(lockName,expireTime,TimeUnit.SECONDS);
+            }
+        }, expireTime * 1000 / 3);
+    }
+
+    @Override
+    public void unlock() {
+        Long execute = stringRedisTemplate.execute(new DefaultRedisScript<>(unlocklua, Long.class), Collections.singletonList(lockName), uuidValue);
+
+        if (null == execute){
+            throw new IllegalMonitorStateException("释放锁失败");
+        }
+    }
+
+    @Override
+    public Condition newCondition() {
+        return null;
+    }
+}
+
+
+
+
+
+@Service
+public class UserServiceImpl implements UserService {
+
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
+
+    @Value("${server.port}")
+    private String port;
+
+    @Autowired
+    private DistributedLockFactory distributedLockFactory;
+
+    @Override
+    public String userInfoHandler() {
+        String retMessage = "";
+        Lock redis = distributedLockFactory.getDistributedLock("redis");
+        redis.lock();
+        try{
+            String result = stringRedisTemplate.opsForValue().get("inventory001");
+            Integer inventory = Integer.valueOf(result);
+            if (inventory>0){
+                stringRedisTemplate.opsForValue().set("inventory001",String.valueOf(inventory-1));
+                retMessage = "成功卖出一件商品，剩余库存"+(inventory-1);
+                System.out.println(retMessage+"\t"+"服务端口："+port);
+                testRentry();
+            }else{
+                System.out.println("库存不足，无法卖出商品，服务端口："+port);
+            }
+        }catch (Exception e){
+            e.printStackTrace();
+        }finally {
+            redis.unlock();
+        }
+
+        return retMessage;
+    }
+    private void testRentry(){
+        Lock lock = distributedLockFactory.getDistributedLock("redis");
+        lock.lock();
+        try{
+            //业务逻辑
+            System.out.println("可重入成功");
+        }finally {
+            lock.unlock();
+        }
+    }
+}
+
+
+```
+
+- 单主机场景下，主机宕机，导致锁未及时同步导致，多个客户获取同一把锁，解决方案：redisson-redlock
+
 ### 缓存淘汰策略
