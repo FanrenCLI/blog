@@ -747,7 +747,15 @@ public Set<String> readZSet(String key) {
 - 如何产生？粉丝数量逐渐增加。如何发现？`redis-cli --bigkey -p -h -a`,此命令会给出每个类型的最大的数据相关信息，`memery usage key`,用于输出key所占的空间
 - 如何删除bigkey,采用渐进式删除，先通过scan命令查询数据，然后删除，不断减少列表数据量，最后删除完成。
 - 如何调优？采用非阻塞删除命令：unlink，flushall/flushdb async,或者通过conf配置文件启用惰性删除。其中unlink是主动惰性删除，通过评估删除时间决定是否采用惰性删除，unlink命令对应的key会立即删除，value会异步删除。，被动惰性删除指的是通过conf文件配置后，del命令删除时会根据配置进行判断是否惰性删除。
-
+- 惰性删除：惰性删除是一种删除策略,就是在删除时只删除key和value的关系，而value交给异步线程去处理，只要涉及删除的地方都可以使用惰性删除的原理，因此惰性删除在配置文件中有多种配置：
+  - lazyfree-lazy-eviction：当 redis 内存达到阈值 maxmemory 时，将执行内存淘汰
+  - lazyfree-lazy-expire：当设置了过期 key 的过期时间到了，将删除 key
+  - lazyfree-lazy-server-del：这种主要用户提交 del 删除指令
+  - replica-lazy-flush：主要用于复制过程中，全量同步的场景，从节点需要删除整个 db
+- 过期的数据如何删除？
+- 请求删除：如果一条数据逻辑已经被删除了，那么当再次被访问时则立即删除，这种策略下出现很多过期的key没有被删除
+- 定期删除：为了释放空间，采用定期删除方式处理，但是又出现大key删除慢且卡顿
+- 异步删除：将大key交给layz-free异步线程处理
 
 ### 缓存双写一致性更新策略
 
@@ -1060,4 +1068,21 @@ public class UserServiceImpl implements UserService {
 
 - 单主机场景下，主机宕机，导致锁未及时同步导致，多个客户获取同一把锁，解决方案：redisson-redlock
 
+- MultiLock
+
 ### 缓存淘汰策略
+
+当redis内存不足时，为了新增数据会根据缓存淘汰算法选择一些数据进行删除数据，如何选择数据有以下几种算法：
+
+- noeviction:不会删除任何key，如果达到了内存上面则报错
+- allkeys-lru:对所有的key采用lru算法进行删除
+- volatile-lru:只对设置了过期时间的key采用lru算法删除
+- allkeys-random:对所有的过期key进行随机删除
+- volatile-random:对设置了过期时间的key进行随机删除
+- volatile-ttl:删除马上要过期的key
+- allkeys-lfu:对所有的key安好lfu算法删除
+- volatile-lfu:对设置了过期时间的key按照lfu算法删除
+
+
+### Redis五种类型源码分析
+
