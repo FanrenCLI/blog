@@ -1086,3 +1086,17 @@ public class UserServiceImpl implements UserService {
 
 ### Redis五种类型源码分析
 
+- redis五种数据类型的底层数据结构
+
+![redis6五种数据类型](http://39.106.34.39:4567/redis_2.png)
+![redis7五种数据类型](http://39.106.34.39:4567/redis_1.png)
+
+- String 
+
+- Hash
+
+- List
+
+- Set
+
+- Zset
