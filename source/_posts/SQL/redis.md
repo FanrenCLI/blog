@@ -1088,10 +1088,82 @@ public class UserServiceImpl implements UserService {
 
 - redis五种数据类型的底层数据结构
 
+```c
+typedef struct redisDb {
+    dict *dict;                 /* The keyspace for this DB */
+    dict *expires;              /* Timeout of keys with a timeout set */
+    dict *blocking_keys;        /* Keys with clients waiting for data (BLPOP)*/
+    dict *ready_keys;           /* Blocked keys that received a PUSH */
+    dict *watched_keys;         /* WATCHED keys for MULTI/EXEC CAS */
+    int id;                     /* Database ID */
+    long long avg_ttl;          /* Average TTL, just for stats */
+    unsigned long expires_cursor; /* Cursor of the active expire cycle. */
+}
+typedef struct dict {
+    dictType *type;
+    void *privdata;
+    dictht ht[2];
+    long rehashidx; /* rehashing not in progress if rehashidx == -1 */
+    unsigned long iterators; /* number of iterators currently running */
+} dict;
+
+typedef struct dictht {
+    dictEntry **table;
+    unsigned long size;
+    unsigned long sizemask;
+    unsigned long used;
+} dictht;
+
+typedef struct dictEntry {
+    void *key;
+    union {
+        void *val;
+        uint64_t u64;
+        int64_t s64;
+        double d;
+    } v;
+    struct dictEntry *next;
+} dictEntry;
+
+typedef struct redisObject {
+    unsigned type:4; //类型
+    unsigned encoding:4; //编码
+    unsigned lru:LRU_BITS; /* LRU time (relative to global lru_clock) or
+                            * LFU data (least significant 8 bits frequency
+                            * and most significant 16 bits access time). */
+    int refcount;          /* Reference count */ //引用计数
+    void *ptr;             /* Pointer to the actual data structure */
+} robj;
+
+```
+
 ![redis6五种数据类型](http://39.106.34.39:4567/redis_2.png)
 ![redis7五种数据类型](http://39.106.34.39:4567/redis_1.png)
 
+
+
 - String 
+
+String类型的三种物理编码方式：int、raw、embstr
+  - int：可以保存long类型的64位有符号整数,超过long类型的范围，则编码方式变为raw
+  - embstr：保存长度小于44字节的字符串，超过44字节，则编码方式变为raw
+  - raw:保存长度大于44字节的字符串，
+  - 如果修改embstr类型，则不论是否超过44字节，都会变为raw类型
+SDS:简单动态字符串，redis自己封装的字符串类型，redis中所有的字符串都是SDS类型
+  - len:记录字符串长度
+  - alloc:记录分配内存空间的大小
+  - flags:记录编码方式
+  - buf:字符数组，保存字符串
+SDS相比于C语言的字符串的优势：
+  - 获取字符串长度时间复杂度为O(1)
+  - 杜绝缓冲区溢出
+  - 减少内存分配次数
+  - 二进制安全
+  - 兼容部分C字符串函数
+int编码格式：当创建的数据为整数，长度小于20且小于10000时，redis会从预分配的对象中直接获取不再重新创建对象，否则创建一个整数类型对象
+embstr编码格式：当创建的数据为字符串，长度小于44字节时,redis使用embstr编码格式，set设置数据时，会在创建redisobject对象后通过指针+1的形式直接在对手后面创建SDS对象，从而减少内存分配次数
+raw编码格式：当创建的数据为字符串，长度大于44字节时,redis使用raw编码格式。
+
 
 - Hash
 
