@@ -17,11 +17,11 @@ author: Fanrencli
 
 `Inceptionv3`模型相比于其他模型创新在于使用了四个并行分支，且每个分支采用的卷积核大小不同，使得存在不同的感受野，最后在进行特征融合，得到不同尺度的特征。其主要包括三个部分：block1、block2、block3，由这些部分线性连接组成了`Inceptionv3`(其中层数可能会有一些改变，但是总体结构一样)。
 
-![block1](http://39.106.34.39:4567/2019111309515588.png)
+![block1](http://fanrencli.cn/fanrencli.cn/2019111309515588.png)
 block1中四个分支分别为不同卷积核大小的卷积层。
-![block2](http://39.106.34.39:4567/20191113095610269.png)
+![block2](http://fanrencli.cn/fanrencli.cn/20191113095610269.png)
 block2中四个分支中将原始的卷积操作转换成横向和纵向结合的卷积操作，通过这样操作可以减少参数量。
-![block3](http://39.106.34.39:4567/2019111309572648.png)
+![block3](http://fanrencli.cn/fanrencli.cn/2019111309572648.png)
 block3的卷积形式和block2的卷积形式相同，只是其中组合的卷积核大小不同。
 
 代码如下：
@@ -218,16 +218,16 @@ def InceptionV3(input_shape=[299,299,3], classes=1000):
 
 `Xception`是在`Inceptionv3`的基础上改进而来的，主要的改进在原来的多尺寸卷积，使用了深度可分离卷积进行替换，关于深度可分离卷积在之前的`MobileNet`文章中已经介绍，所以我们直接来看`Xception`的网络结构吧。
 
-![Xception](http://39.106.34.39:4567/20191030102403596.png)
+![Xception](http://fanrencli.cn/fanrencli.cn/20191030102403596.png)
 
 `Xception`的结构和`Inception`结构类似，同样也分为三个部分：entry flow、middle flow、exit flow。总共包含14个block，其中entry flow有4个，middle flow有重复8次即8个block，exit flow有两个。
 其中entry flow和exit flow中的block结构如下图所示：
 
-![block](http://39.106.34.39:4567/20191030103011544.png)
+![block](http://fanrencli.cn/fanrencli.cn/20191030103011544.png)
 
 middle flow的block结构如下图所示：
 
-![block](http://39.106.34.39:4567/2019111310354382.png)
+![block](http://fanrencli.cn/fanrencli.cn/2019111310354382.png)
 
 如果对于之前的ResNet已经有学习过，相信你已经对这个结构游刃有余了，所以直接来看代码吧。
 

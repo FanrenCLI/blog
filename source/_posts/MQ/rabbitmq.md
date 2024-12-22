@@ -13,7 +13,7 @@ author: Fanrencli
 - 消费者只需要知道从哪个队列中接受消息，提供消费消息的方法和是否自动应答
 - 队列的创建和交换机的创建可以由第三方创建，不需要在生产者和消费者的代码中涉及
 
-![RabbitMQ图示](http://39.106.34.39:4567/rabbitmq1.png)
+![RabbitMQ图示](http://fanrencli.cn/fanrencli.cn/rabbitmq1.png)
 
 ### 简单模式以及工作队列模式
 
@@ -301,7 +301,7 @@ public class Consumer1{
 - 死信交换机可以绑定到多个正常的队列中，根据每个正常队列绑定死信交换机的不同路由键，将正常队列的死亡的消息转发到死信交换机上对应路由键的队列。
 
 
-![RabbitMQ死信图示](http://39.106.34.39:4567/rabbitmq2.png)
+![RabbitMQ死信图示](http://fanrencli.cn/fanrencli.cn/rabbitmq2.png)
 
 ```java
 class RabbitMQUtils{

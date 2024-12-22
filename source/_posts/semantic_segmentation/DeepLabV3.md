@@ -23,7 +23,7 @@ author: Fanrencli
 
 通过`DeepLabv3+`论文中的阐述，我们可以大致了解整个`DeepLabv3+`的网络结构，如下图：
 
-![DeepLabv3+网络结构](http://39.106.34.39:4567/_20210523162658.png)
+![DeepLabv3+网络结构](http://fanrencli.cn/fanrencli.cn/_20210523162658.png)
 
 ### Xception网络优化
 
@@ -33,7 +33,7 @@ author: Fanrencli
 
 具体改进后的网络如下图所示：
 
-![DeepLabv3+网络结构](http://39.106.34.39:4567/_20210523175240.png)
+![DeepLabv3+网络结构](http://fanrencli.cn/fanrencli.cn/_20210523175240.png)
 
 代码展示如下：
 ```python

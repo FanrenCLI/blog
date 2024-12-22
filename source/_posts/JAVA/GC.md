@@ -65,7 +65,7 @@ author: Fanrencli
 
 ## JVM 内存模型
 
-![JVM内存模型](http://39.106.34.39:4567/20200101151338500.png)
+![JVM内存模型](http://fanrencli.cn/fanrencli.cn/20200101151338500.png)
 
 - 堆：（new）对象存储，数组（在jdk7后字符串常量、静态变量）；
 - 方法区：类的加载信息、常量、即时编译后的代码；
@@ -87,7 +87,7 @@ author: Fanrencli
 - majorGC:收集整个老年代的垃圾，老年代空间不足就会触发
 - FullGC：收集整个java堆和方法区的垃圾，fullgc只是一个概念，意指所有内存空间都会进行垃圾回收，但是需要结合具体的垃圾收集器进行分析。
 
-![JVM对象分配过程](http://39.106.34.39:4567/jvm_pic1.jpg)
+![JVM对象分配过程](http://fanrencli.cn/fanrencli.cn/jvm_pic1.jpg)
 
 
 对象的分配不一定都在堆上分配，首先通过逃逸分析，如果这个对象只在此方法中使用，则认为没有逃逸，就在栈中分配内存，随着方法销毁。
@@ -153,7 +153,7 @@ TLAB的出现是由于堆内空间共享，如果多个线程同时创建对象�
 
 常用的JVM参数设置：
 - -XX:+PrintFlagsInitial:查看所有的参数的默认初始值
-![J1](http://39.106.34.39:4567/image-10.png)
+![J1](http://fanrencli.cn/fanrencli.cn/image-10.png)
 - -XX:PrintFlagsFinal:查看所有的参数的最终值
 - -Xms:初始堆空间大小（默认1/64)
 - -Xmx:最大对空间大小（默认1/4）
@@ -219,30 +219,30 @@ Heap
   - `jstat -<options> [-t] [-h<lines>] <vmid> [<interval> [<count>]]`
   - `options`: 参数可选项有多种，其中包括：-class/-compiler/-printcompilation/-gc
   - `jstat -class <PID>`:*load*加载的类数量和字节数，*unload*卸载的类的数量和字节数，*Time*花费的时间
-  ![P1](http://39.106.34.39:4567/jps1.png)
+  ![P1](http://fanrencli.cn/fanrencli.cn/jps1.png)
   - `jstat -class <PID> <interval>`:每隔多少毫秒打印一次
-  ![P2](http://39.106.34.39:4567/image.png)
+  ![P2](http://fanrencli.cn/fanrencli.cn/image.png)
   - `jstat -class <PID> <interval> <count>`:每隔多少毫秒打印一次,一共打印多少次
-  ![P3](http://39.106.34.39:4567/image-1.png)
+  ![P3](http://fanrencli.cn/fanrencli.cn/image-1.png)
   - `jstat -class -t <PID>`:新增时间列，表示程序启动到输出信息的总时间
-  ![P4](http://39.106.34.39:4567/image-2.png)
+  ![P4](http://fanrencli.cn/fanrencli.cn/image-2.png)
   - `jstat -class -t -h3 <PID> <interval> <count>`:周期性输出信息时每个3行打印一行表头
-  ![P5](http://39.106.34.39:4567/image-3.png)
+  ![P5](http://fanrencli.cn/fanrencli.cn/image-3.png)
   - `jstat -compiler <PID>`:程序启动JIT编译的数量，失败的数量，不合法的数量，耗时
-  ![P6](http://39.106.34.39:4567/image-4.png)
+  ![P6](http://fanrencli.cn/fanrencli.cn/image-4.png)
   - `jstat -printcompilation <PID>`:输出已经被JIT编译的方法
   - `jstat -gc <PID>`:输出当前内存空间的使用情况：EC伊甸园区容量/EU伊甸园区使用量/S0C幸存者1容量/S0U幸存者1使用量/S1C/S1U/OC老年代容量/OU老年代使用量/MC方法区容量/MU方法区使用量/YGC年轻代GC次数/YGCT年轻代GC耗时/FGC老年代GC次数/FGCT老年代GC时间/GCT所有的GC耗时
-  ![P7](http://39.106.34.39:4567/image-5.png)
+  ![P7](http://fanrencli.cn/fanrencli.cn/image-5.png)
   - `jstat -gcutil -t -h10 <PID> 5000`:主要关注各个区域的使用占比
-  ![P8](http://39.106.34.39:4567/image-6.png)
+  ![P8](http://fanrencli.cn/fanrencli.cn/image-6.png)
 
 - jinfo:实时查看和修改JVM参数
   - `jinfo -sysprops <PID>`:查看所有的系统属性
-  ![P9](http://39.106.34.39:4567/image-8.png)
+  ![P9](http://fanrencli.cn/fanrencli.cn/image-8.png)
   - `jinfo -flags <PID>`:查看所有被赋值的参数
-  ![P10](http://39.106.34.39:4567/image-7.png)
+  ![P10](http://fanrencli.cn/fanrencli.cn/image-7.png)
   - `jinfo -flag 具体的参数 <PID>`:查看某个具体参数的值
-  ![P11](http://39.106.34.39:4567/image-9.png)
+  ![P11](http://fanrencli.cn/fanrencli.cn/image-9.png)
   - `jinfo -flag +/-具体的参数 <PID>`:修改某个具体的参数（只有部分参数可以修改manageable）
   - `jinfo -flag 具体的参数=xxx <PID>`:修改某个具体的参数（只有部分参数可以修改manageable）
 
@@ -258,7 +258,7 @@ Heap
 
 - jstack:获取当前进程中的线程相关信息
   - `jstack <PID>`
-  ![P12](http://39.106.34.39:4567/image-11.png)
+  ![P12](http://fanrencli.cn/fanrencli.cn/image-11.png)
 
 
 ### Arthas

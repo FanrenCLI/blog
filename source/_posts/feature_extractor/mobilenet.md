@@ -20,19 +20,19 @@ tags:
 
 `MobileNetv1`网络特点主要集中于提出的深度可分离卷积，其网络结构部分只是线性连接，如下图所示。
 
-![MobileNetv1](http://39.106.34.39:4567/20191030153845940.png)
+![MobileNetv1](http://fanrencli.cn/fanrencli.cn/20191030153845940.png)
 
 #### 深度可分离卷积
 
 介绍深度可分离卷积，那我们不得不与常规的卷积进行对比，常规的卷积操作如下图。
 
-![常规卷积](http://39.106.34.39:4567/v2-617b082492f5c1c31bde1c6e2d994bc0_720w.jpg)
+![常规卷积](http://fanrencli.cn/fanrencli.cn/v2-617b082492f5c1c31bde1c6e2d994bc0_720w.jpg)
 
 对于一张通道数为3，长宽为5的输入图像，经过3x3的卷积核，且输出层数为4的卷积时，其卷积核的真实情况如上图，在此种情况下参数量为：4x3x3x3=108。
 而在深度可分离卷积中，我们进行同样的3x3的卷积核，且输出层数为4的卷积时，其操作情况如下两张图片。
 
-![图1](http://39.106.34.39:4567/v2-a20824492e3e8778a959ca3731dfeea3_720w.jpg)
-![图2](http://39.106.34.39:4567/v2-2cdae9b3ad2f1d07e2c738331dac6d8b_720w.jpg)
+![图1](http://fanrencli.cn/fanrencli.cn/v2-a20824492e3e8778a959ca3731dfeea3_720w.jpg)
+![图2](http://fanrencli.cn/fanrencli.cn/v2-2cdae9b3ad2f1d07e2c738331dac6d8b_720w.jpg)
 
 在深度可分离卷积中，首先通过N个3x3的卷积核（其中N为输入的层数，在图一中N为3）与输入层数一一对应进行特征提取，然后再通过M个1xN的卷积进行层数的缩放（图2）。在这种情况下，参数量为：3x3x3+1x1x3x4=39。相较于常规卷积操作，深度可分离卷积的参数量下降了很多，大大提高了模型的运行性能，并且对最终的结果的精确度影响并不是很高。
 
@@ -123,14 +123,14 @@ def relu6(x):
 
 `MobileNetv2`网络特点相较于`MobileNetv1`提出了反残差结构和线性瓶颈结构，总体网络结构如下图所示。
 
-![MobileNetv2](http://39.106.34.39:4567/20191101094224444.png)
+![MobileNetv2](http://fanrencli.cn/fanrencli.cn/20191101094224444.png)
 
 #### 反残差结构和线性瓶颈结构
 
 反残差结构是相对于ResNet50而言的，此外MobileNetv2的基础结构和ResNet的基础结构一样，同样是双分支残差连接：
 
-![结构对比](http://39.106.34.39:4567/201911131056046.png)
-![基础结构](http://39.106.34.39:4567/v2-38bcaaee3e9e28611ecc984727e6d598_720w.png)
+![结构对比](http://fanrencli.cn/fanrencli.cn/201911131056046.png)
+![基础结构](http://fanrencli.cn/fanrencli.cn/v2-38bcaaee3e9e28611ecc984727e6d598_720w.png)
 
 其中ResNet50中先卷积降维，然后进行3x3卷积提取特征，然后在进行升维，这样做在实际中部证明是比直接3x3卷积效果更好的。而在`MobileNetv2`中，反向进行操作。
 而所谓的线性瓶颈结构则是在卷积降维之后不再进行`ReLu6`层激活，保证提取得到的特征不被破坏，直接与输入相加。
@@ -255,13 +255,13 @@ def _inverted_res_block(inputs, expansion, stride, pointwise_filters, block_id):
 
 主要网络结构有两种，一种large，一种small，主要区别在于通道数和基础块的次数，本文介绍small类型，网络结构如下：
 
-![MobileNetv3](http://39.106.34.39:4567/20200122140810351.png)
+![MobileNetv3](http://fanrencli.cn/fanrencli.cn/20200122140810351.png)
 
 #### 轻量级注意力机制引入
 
 在`MobileNetv3`中，由于轻量级注意力机制的引入，使得原来的基础块结构产生了一些变化，新的结构如图所示:
 
-![MobileNetv3 block](http://39.106.34.39:4567/20200122110008244.png)
+![MobileNetv3 block](http://fanrencli.cn/fanrencli.cn/20200122110008244.png)
 
 从上图我们可以直观的感受到，轻量级注意力机制的引入主要用于改变各个特征层之间的权重系数。
 相信通过前面代码的学习你对特征提取的网络已经有了一定的了解，那么下面的代码就很容易理解了。

@@ -319,7 +319,7 @@ exec
 - 缺点：从机连接从机，复制延迟，如果主机挂了，从机不会成为主机。
 - 主机接收到写命令后，在写入数据的同时会将命令写入复制缓冲区（不是复制积压缓冲区），然后复制缓冲区会发送给从机，同时将命令写入复制积压缓冲区，用于如果从机断开后重连情况下的增量同步
 
-![主从复制步骤](http://39.106.34.39:4567/zhucong.png)
+![主从复制步骤](http://fanrencli.cn/fanrencli.cn/zhucong.png)
 
 ### 哨兵监控
 
@@ -1137,8 +1137,8 @@ typedef struct redisObject {
 
 ```
 
-![redis6五种数据类型](http://39.106.34.39:4567/redis_2.png)
-![redis7五种数据类型](http://39.106.34.39:4567/redis_1.png)
+![redis6五种数据类型](http://fanrencli.cn/fanrencli.cn/redis_2.png)
+![redis7五种数据类型](http://fanrencli.cn/fanrencli.cn/redis_1.png)
 
 
 
