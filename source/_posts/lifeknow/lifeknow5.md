@@ -53,7 +53,6 @@ categories:
    - 类加载机制：双亲委派模型
    - JVM 调优：常见参数与工具（jstat、jmap、jstack）
 
----
 
 ## 数据库
 1. **SQL 基础**
