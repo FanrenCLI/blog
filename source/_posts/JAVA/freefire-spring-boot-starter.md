@@ -17,6 +17,7 @@ author: Fanrencli
 
 以下图片展示的就是项目的具体目录结构，并在目录树中介绍各个文件目录的作用。注意如果项目中引入了thymeleaf，则页面入口的文件必须存放在templates文件目录下，且同时会拦截所有@controller注解的请路径，并自动拼接后缀。
 
+![项目结构](http://fanrencli.cn/fanrencli.cn/unittest.png)
 ![项目目录](http://fanrencli.cn/fanrencli.cn/B9EB38A3-7B54-4b80-BCB2-79E8794F9E32.png)
 
 ```txt
