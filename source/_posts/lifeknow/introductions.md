@@ -4,7 +4,7 @@
 - **集合框架**：ArrayList、LinkedList、HashMap、HashSet、ConcurrentHashMap等。
 - **异常处理**：异常分类、自定义异常、try-catch-finally、throw和throws。
 - **泛型**：泛型类、泛型方法、类型擦除。
-- **多线程**：线程创建、线程池、同步机制（synchronized、Lock）、volatile、CAS、ThreadLocal。
+- **多线程**：线程创建、线程池、同步机制（synchronized、Lock）、volatile、CAS、ThreadLocal，AQS。
 - **IO/NIO**：文件读写、字节流与字符流、NIO的Buffer、Channel、Selector。
 - **反射**：Class类、Method类、Field类、动态代理。
 - **注解**：自定义注解、元注解、注解处理器。
