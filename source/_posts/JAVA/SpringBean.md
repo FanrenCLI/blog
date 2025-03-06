@@ -25,7 +25,7 @@ author: Fanrencli
 - 这样类就初始化完成，可以使用了
 - 后面就是类的销毁方法还有一些接口可以实现，如果实现了就需要调用
 
-![Bean生命周期（转载）](http://39.106.34.39:4567/BeanTime.png)
+![Bean生命周期（转载）](http://fanrencli.cn/fanrencli.cn/BeanTime.png)
 
 #### finishBeanFactoryInitialization方法源码解析
 

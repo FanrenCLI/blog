@@ -92,8 +92,8 @@ author: Fanrencli
 ```
 针对以上代码可以在理解的基础上进行修改。结果图展示：
 
-![结果图](http://39.106.34.39:4567/1.png)
-![数据图](http://39.106.34.39:4567/2.png)
+![结果图](http://fanrencli.cn/fanrencli.cn/1.png)
+![数据图](http://fanrencli.cn/fanrencli.cn/2.png)
 
 > **注意**:论文中针对S3DIS数据集，以区域1,2,3,4,6作为训练集，区域5作为测试集 
 

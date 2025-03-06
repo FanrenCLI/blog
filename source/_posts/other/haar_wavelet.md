@@ -12,7 +12,7 @@ author: Fanrencli
 >haar小波变换的图像应用实例
 
 ## Haar Wavelet 图片示例
-![Picture resolutions(512*512)](http://39.106.34.39:4567/pic.png)
+![Picture resolutions(512*512)](http://fanrencli.cn/fanrencli.cn/pic.png)
 ```python
 import numpy as np
 import cv2
@@ -55,7 +55,7 @@ def haar_dwt2D(img):
     return img
 if __name__ == '__main__':
     #读取网络图片（2选1）
-    file_pic=requests.get('http://39.106.34.39:4567/pic.png')
+    file_pic=requests.get('http://fanrencli.cn/fanrencli.cn/pic.png')
     img= cv2.imdecode(np.fromstring(file_pic.content, np.uint8), 0).astype(np.float64)
     #读取本地图片（2选1）
     # img= cv2.imread("pic.png",0).astype(np.float64)

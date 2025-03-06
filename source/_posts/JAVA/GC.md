@@ -65,7 +65,7 @@ author: Fanrencli
 
 ## JVM 内存模型
 
-![JVM内存模型](http://39.106.34.39:4567/20200101151338500.png)
+![JVM内存模型](http://fanrencli.cn/fanrencli.cn/20200101151338500.png)
 
 - 堆：（new）对象存储，数组（在jdk7后字符串常量、静态变量）；
 - 方法区：类的加载信息、常量、即时编译后的代码；
@@ -87,7 +87,7 @@ author: Fanrencli
 - majorGC:收集整个老年代的垃圾，老年代空间不足就会触发
 - FullGC：收集整个java堆和方法区的垃圾，fullgc只是一个概念，意指所有内存空间都会进行垃圾回收，但是需要结合具体的垃圾收集器进行分析。
 
-![JVM对象分配过程](http://39.106.34.39:4567/jvm_pic1.jpg)
+![JVM对象分配过程](http://fanrencli.cn/fanrencli.cn/jvm_pic1.jpg)
 
 
 对象的分配不一定都在堆上分配，首先通过逃逸分析，如果这个对象只在此方法中使用，则认为没有逃逸，就在栈中分配内存，随着方法销毁。
@@ -121,6 +121,94 @@ TLAB的出现是由于堆内空间共享，如果多个线程同时创建对象�
 - CMS收集器（多线程标记清除算法）
 - G1收集器
 
+#### JDK垃圾收集器详解
+
+JDK（Java Development Kit）提供了多种垃圾收集器（Garbage Collector, GC），每种垃圾收集器都有其特定的使用场景和优缺点。以下是JDK中常见的垃圾收集器及其详细介绍：
+
+---
+
+#### 1. **Serial收集器**
+- **特点**：单线程收集器，使用一个线程进行垃圾回收，工作时会暂停所有应用线程（Stop-The-World）。
+- **适用场景**：适用于单核CPU或小型应用，内存占用较小。
+- **启用方式**：`-XX:+UseSerialGC`
+- **优点**：简单高效，适合客户端应用。
+- **缺点**：停顿时间较长，不适合大内存或对响应时间敏感的应用。
+
+---
+
+#### 2. **Parallel收集器（Throughput收集器）**
+- **特点**：多线程收集器，使用多个线程进行垃圾回收，适合多核CPU。
+- **适用场景**：适用于多核CPU、大内存、对吞吐量要求高的应用。
+- **启用方式**：`-XX:+UseParallelGC`
+- **优点**：吞吐量高，适合后台计算任务。
+- **缺点**：停顿时间较长，不适合对响应时间敏感的应用。
+
+---
+
+#### 3. **Parallel Old收集器**
+- **特点**：Parallel收集器的老年代版本，使用多线程进行老年代的垃圾回收。
+- **适用场景**：与Parallel收集器配合使用，适用于多核CPU、大内存、对吞吐量要求高的应用。
+- **启用方式**：`-XX:+UseParallelOldGC`
+- **优点**：吞吐量高，适合后台计算任务。
+- **缺点**：停顿时间较长，不适合对响应时间敏感的应用。
+
+---
+
+#### 4. **CMS收集器（Concurrent Mark-Sweep）**
+- **特点**：并发收集器，尽量减少应用停顿时间，适合对响应时间敏感的应用。
+- **适用场景**：适用于多核CPU、大内存、对响应时间敏感的应用。
+- **启用方式**：`-XX:+UseConcMarkSweepGC`
+- **优点**：停顿时间短，适合交互式应用。
+- **缺点**：吞吐量较低，内存碎片问题较严重。
+
+---
+
+#### 5. **G1收集器（Garbage-First）**
+- **特点**：面向服务端应用的垃圾收集器，将堆内存划分为多个区域（Region），优先回收垃圾最多的区域。
+- **适用场景**：适用于大内存、多核CPU、对响应时间和吞吐量都有要求的应用。
+- **启用方式**：`-XX:+UseG1GC`
+- **优点**：停顿时间可控，适合大内存应用。
+- **缺点**：实现复杂，内存占用较高。
+
+---
+
+#### 6. **ZGC收集器（Z Garbage Collector）**
+- **特点**：低延迟垃圾收集器，目标是将停顿时间控制在10ms以内，适合超大内存应用。
+- **适用场景**：适用于超大内存（TB级别）、对停顿时间极度敏感的应用。
+- **启用方式**：`-XX:+UseZGC`
+- **优点**：停顿时间极短，适合实时应用。
+- **缺点**：内存占用较高，JDK 11及以上版本支持。
+
+---
+
+#### 7. **Shenandoah收集器**
+- **特点**：低延迟垃圾收集器，与ZGC类似，目标是将停顿时间控制在10ms以内。
+- **适用场景**：适用于大内存、对停顿时间敏感的应用。
+- **启用方式**：`-XX:+UseShenandoahGC`
+- **优点**：停顿时间短，适合实时应用。
+- **缺点**：内存占用较高，JDK 12及以上版本支持。
+
+---
+
+#### 8. **Epsilon收集器**
+- **特点**：无操作垃圾收集器，不进行任何垃圾回收，适用于性能测试和短生命周期应用。
+- **适用场景**：适用于性能测试、短生命周期应用或已知内存足够的场景。
+- **启用方式**：`-XX:+UseEpsilonGC`
+- **优点**：无垃圾回收开销，适合特定场景。
+- **缺点**：不进行垃圾回收，内存耗尽时应用会崩溃。
+
+---
+
+## 总结
+- **Serial收集器**：适合单核CPU和小型应用。
+- **Parallel收集器**：适合多核CPU和对吞吐量要求高的应用。
+- **CMS收集器**：适合对响应时间敏感的应用。
+- **G1收集器**：适合大内存和对响应时间、吞吐量都有要求的应用。
+- **ZGC和Shenandoah收集器**：适合超大内存和对停顿时间极度敏感的应用。
+- **Epsilon收集器**：适合性能测试和短生命周期应用。
+
+---
+
 ### 四种引用类型
 
 - 强引用：如果一个对象与GC Roots之间存在强引用，则称这个对象为强可达对象，例如：String asd = new String("");
@@ -153,7 +241,7 @@ TLAB的出现是由于堆内空间共享，如果多个线程同时创建对象�
 
 常用的JVM参数设置：
 - -XX:+PrintFlagsInitial:查看所有的参数的默认初始值
-![J1](http://39.106.34.39:4567/image-10.png)
+![J1](http://fanrencli.cn/fanrencli.cn/image-10.png)
 - -XX:PrintFlagsFinal:查看所有的参数的最终值
 - -Xms:初始堆空间大小（默认1/64)
 - -Xmx:最大对空间大小（默认1/4）
@@ -219,30 +307,30 @@ Heap
   - `jstat -<options> [-t] [-h<lines>] <vmid> [<interval> [<count>]]`
   - `options`: 参数可选项有多种，其中包括：-class/-compiler/-printcompilation/-gc
   - `jstat -class <PID>`:*load*加载的类数量和字节数，*unload*卸载的类的数量和字节数，*Time*花费的时间
-  ![P1](http://39.106.34.39:4567/jps1.png)
+  ![P1](http://fanrencli.cn/fanrencli.cn/jps1.png)
   - `jstat -class <PID> <interval>`:每隔多少毫秒打印一次
-  ![P2](http://39.106.34.39:4567/image.png)
+  ![P2](http://fanrencli.cn/fanrencli.cn/image.png)
   - `jstat -class <PID> <interval> <count>`:每隔多少毫秒打印一次,一共打印多少次
-  ![P3](http://39.106.34.39:4567/image-1.png)
+  ![P3](http://fanrencli.cn/fanrencli.cn/image-1.png)
   - `jstat -class -t <PID>`:新增时间列，表示程序启动到输出信息的总时间
-  ![P4](http://39.106.34.39:4567/image-2.png)
+  ![P4](http://fanrencli.cn/fanrencli.cn/image-2.png)
   - `jstat -class -t -h3 <PID> <interval> <count>`:周期性输出信息时每个3行打印一行表头
-  ![P5](http://39.106.34.39:4567/image-3.png)
+  ![P5](http://fanrencli.cn/fanrencli.cn/image-3.png)
   - `jstat -compiler <PID>`:程序启动JIT编译的数量，失败的数量，不合法的数量，耗时
-  ![P6](http://39.106.34.39:4567/image-4.png)
+  ![P6](http://fanrencli.cn/fanrencli.cn/image-4.png)
   - `jstat -printcompilation <PID>`:输出已经被JIT编译的方法
   - `jstat -gc <PID>`:输出当前内存空间的使用情况：EC伊甸园区容量/EU伊甸园区使用量/S0C幸存者1容量/S0U幸存者1使用量/S1C/S1U/OC老年代容量/OU老年代使用量/MC方法区容量/MU方法区使用量/YGC年轻代GC次数/YGCT年轻代GC耗时/FGC老年代GC次数/FGCT老年代GC时间/GCT所有的GC耗时
-  ![P7](http://39.106.34.39:4567/image-5.png)
+  ![P7](http://fanrencli.cn/fanrencli.cn/image-5.png)
   - `jstat -gcutil -t -h10 <PID> 5000`:主要关注各个区域的使用占比
-  ![P8](http://39.106.34.39:4567/image-6.png)
+  ![P8](http://fanrencli.cn/fanrencli.cn/image-6.png)
 
 - jinfo:实时查看和修改JVM参数
   - `jinfo -sysprops <PID>`:查看所有的系统属性
-  ![P9](http://39.106.34.39:4567/image-8.png)
+  ![P9](http://fanrencli.cn/fanrencli.cn/image-8.png)
   - `jinfo -flags <PID>`:查看所有被赋值的参数
-  ![P10](http://39.106.34.39:4567/image-7.png)
+  ![P10](http://fanrencli.cn/fanrencli.cn/image-7.png)
   - `jinfo -flag 具体的参数 <PID>`:查看某个具体参数的值
-  ![P11](http://39.106.34.39:4567/image-9.png)
+  ![P11](http://fanrencli.cn/fanrencli.cn/image-9.png)
   - `jinfo -flag +/-具体的参数 <PID>`:修改某个具体的参数（只有部分参数可以修改manageable）
   - `jinfo -flag 具体的参数=xxx <PID>`:修改某个具体的参数（只有部分参数可以修改manageable）
 
@@ -258,7 +346,7 @@ Heap
 
 - jstack:获取当前进程中的线程相关信息
   - `jstack <PID>`
-  ![P12](http://39.106.34.39:4567/image-11.png)
+  ![P12](http://fanrencli.cn/fanrencli.cn/image-11.png)
 
 
 ### Arthas

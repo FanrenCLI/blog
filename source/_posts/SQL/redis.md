@@ -319,7 +319,7 @@ exec
 - 缺点：从机连接从机，复制延迟，如果主机挂了，从机不会成为主机。
 - 主机接收到写命令后，在写入数据的同时会将命令写入复制缓冲区（不是复制积压缓冲区），然后复制缓冲区会发送给从机，同时将命令写入复制积压缓冲区，用于如果从机断开后重连情况下的增量同步
 
-![主从复制步骤](http://39.106.34.39:4567/zhucong.png)
+![主从复制步骤](http://fanrencli.cn/fanrencli.cn/zhucong.png)
 
 ### 哨兵监控
 
@@ -747,7 +747,15 @@ public Set<String> readZSet(String key) {
 - 如何产生？粉丝数量逐渐增加。如何发现？`redis-cli --bigkey -p -h -a`,此命令会给出每个类型的最大的数据相关信息，`memery usage key`,用于输出key所占的空间
 - 如何删除bigkey,采用渐进式删除，先通过scan命令查询数据，然后删除，不断减少列表数据量，最后删除完成。
 - 如何调优？采用非阻塞删除命令：unlink，flushall/flushdb async,或者通过conf配置文件启用惰性删除。其中unlink是主动惰性删除，通过评估删除时间决定是否采用惰性删除，unlink命令对应的key会立即删除，value会异步删除。，被动惰性删除指的是通过conf文件配置后，del命令删除时会根据配置进行判断是否惰性删除。
-
+- 惰性删除：惰性删除是一种删除策略,就是在删除时只删除key和value的关系，而value交给异步线程去处理，只要涉及删除的地方都可以使用惰性删除的原理，因此惰性删除在配置文件中有多种配置：
+  - lazyfree-lazy-eviction：当 redis 内存达到阈值 maxmemory 时，将执行内存淘汰
+  - lazyfree-lazy-expire：当设置了过期 key 的过期时间到了，将删除 key
+  - lazyfree-lazy-server-del：这种主要用户提交 del 删除指令
+  - replica-lazy-flush：主要用于复制过程中，全量同步的场景，从节点需要删除整个 db
+- 过期的数据如何删除？
+- 请求删除：如果一条数据逻辑已经被删除了，那么当再次被访问时则立即删除，这种策略下出现很多过期的key没有被删除
+- 定期删除：为了释放空间，采用定期删除方式处理，但是又出现大key删除慢且卡顿
+- 异步删除：将大key交给layz-free异步线程处理
 
 ### 缓存双写一致性更新策略
 
@@ -790,7 +798,7 @@ public Set<String> readZSet(String key) {
 - DAU :daily active user(日活跃用户数量)，需要去重
 - MAU: mouth active user(月活跃用户数量)
 
-- hyperloglog：用于去重统计，通过pfadd命令添加元素，如果这个元素没有则添加成功返回1，如果已经存在则返回0。原理：通过hash函数计算得到64位字节，前14位用于确定桶位置，后50位从低位往高位计算连续0的个数，作为判断是否重复的精度。
+- hyperloglog：用于去重统计，通过pfadd命令添加元素，如果这个元素没有则添加成功返回1，如果已经存在则返回0。原理：通过hash函数计算得到64位字节，前14位用于确定桶位置，后50位从低位往高位计算连续0的个数，作为判断是否重复的精度。准确率在0.81%左右，如果需要更高的精度，可以采用多个hyperloglog进行合并，通过pfmerge命令合并多个hyperloglog，合并后的hyperloglog的精度是合并前的精度乘以合并前的数量。
 
 - GEO:用于存储地理位置，通过redis提供的命令可以计算不同地点之间的距离，查询附近的地点，计算距离等操作
 
@@ -1060,4 +1068,195 @@ public class UserServiceImpl implements UserService {
 
 - 单主机场景下，主机宕机，导致锁未及时同步导致，多个客户获取同一把锁，解决方案：redisson-redlock
 
+- MultiLock
+
 ### 缓存淘汰策略
+
+当redis内存不足时，为了新增数据会根据缓存淘汰算法选择一些数据进行删除数据，如何选择数据有以下几种算法：
+
+- noeviction:不会删除任何key，如果达到了内存上面则报错
+- allkeys-lru:对所有的key采用lru算法进行删除
+- volatile-lru:只对设置了过期时间的key采用lru算法删除
+- allkeys-random:对所有的过期key进行随机删除
+- volatile-random:对设置了过期时间的key进行随机删除
+- volatile-ttl:删除马上要过期的key
+- allkeys-lfu:对所有的key安好lfu算法删除
+- volatile-lfu:对设置了过期时间的key按照lfu算法删除
+
+
+### Redis五种类型源码分析
+
+- redis五种数据类型的底层数据结构
+
+```c
+typedef struct redisDb {
+    dict *dict;                 /* The keyspace for this DB */
+    dict *expires;              /* Timeout of keys with a timeout set */
+    dict *blocking_keys;        /* Keys with clients waiting for data (BLPOP)*/
+    dict *ready_keys;           /* Blocked keys that received a PUSH */
+    dict *watched_keys;         /* WATCHED keys for MULTI/EXEC CAS */
+    int id;                     /* Database ID */
+    long long avg_ttl;          /* Average TTL, just for stats */
+    unsigned long expires_cursor; /* Cursor of the active expire cycle. */
+}
+typedef struct dict {
+    dictType *type;
+    void *privdata;
+    dictht ht[2];
+    long rehashidx; /* rehashing not in progress if rehashidx == -1 */
+    unsigned long iterators; /* number of iterators currently running */
+} dict;
+
+typedef struct dictht {
+    dictEntry **table;
+    unsigned long size;
+    unsigned long sizemask;
+    unsigned long used;
+} dictht;
+
+typedef struct dictEntry {
+    void *key;
+    union {
+        void *val;
+        uint64_t u64;
+        int64_t s64;
+        double d;
+    } v;
+    struct dictEntry *next;
+} dictEntry;
+
+typedef struct redisObject {
+    unsigned type:4; //类型
+    unsigned encoding:4; //编码
+    unsigned lru:LRU_BITS; /* LRU time (relative to global lru_clock) or
+                            * LFU data (least significant 8 bits frequency
+                            * and most significant 16 bits access time). */
+    int refcount;          /* Reference count */ //引用计数
+    void *ptr;             /* Pointer to the actual data structure */
+} robj;
+
+```
+
+![redis6五种数据类型](http://fanrencli.cn/fanrencli.cn/redis_2.png)
+![redis7五种数据类型](http://fanrencli.cn/fanrencli.cn/redis_1.png)
+
+
+
+- String 
+
+String类型的三种物理编码方式：int、raw、embstr
+
+  - int：可以保存long类型的64位有符号整数,超过long类型的范围，则编码方式变为raw
+  - embstr：保存长度小于44字节的字符串，超过44字节，则编码方式变为raw
+  - raw:保存长度大于44字节的字符串，
+  - 如果修改embstr类型，则不论是否超过44字节，都会变为raw类型
+
+SDS:简单动态字符串，redis自己封装的字符串类型，redis中所有的字符串都是SDS类型
+
+  - len:记录字符串长度
+  - alloc:记录分配内存空间的大小
+  - flags:记录编码方式
+  - buf:字符数组，保存字符串
+
+SDS相比于C语言的字符串的优势：
+
+  - 获取字符串长度时间复杂度为O(1)
+  - 杜绝缓冲区溢出
+  - 减少内存分配次数
+  - 二进制安全
+  - 兼容部分C字符串函数
+
+int编码格式：当创建的数据为整数，长度小于20且小于10000时，redis会从预分配的对象中直接获取不再重新创建对象，否则创建一个整数类型对象
+embstr编码格式：当创建的数据为字符串，长度小于44字节时,redis使用embstr编码格式，set设置数据时，会在创建redisobject对象后通过指针+1的形式直接在对手后面创建SDS对象，从而减少内存分配次数
+raw编码格式：当创建的数据为字符串，长度大于44字节时,redis使用raw编码格式。
+
+
+- Hash
+
+Hash结构分为redis6和redis7两个版本
+  - redis6:底层使用ziplist和hashtable两种数据结构，当hash对象保存的键值对数量小于512且所有键值对的长度都小于64字节时，使用ziplist编码格式，否则使用hashtable编码格式,如果一开始使用ziplist,后续数据库增加可以升级为hashtable，但是反过来不行
+
+`zipList`:是一个特殊的双向链表，但是不存储指向前后的指针，只存储上一个节点的长度和当前节点的长度。一个ziplist存储的数据从前到后：1.链表的内存占用字节数，2.尾节点到起始地址的字节数，3.节点数量，4.N个节点，5.链表结尾标识
+  - ziplist链表中的节点结构：
+    ```C
+    typedef struct zlentry {
+        unsigned int prevrawlensize; /* Bytes used to encode the previous entry len*/
+        unsigned int prevrawlen;     /* Previous entry len. */
+        unsigned int lensize;        /* Bytes used to encode this entry type/len.
+                                        For example- if an entry 5 bytes long (a
+                                        4 byte unsigned integer following by a 1
+                                        byte string), there is one byte used to
+                                        encode the type (0x05), one to encode
+                                        the length of the integer (0x04) and one
+                                        to encode the string length (0x01). */
+        unsigned int len;            /* Bytes used to represent the actual entry.
+                                        For strings this is just the string length
+                                        while for integers it is 1, 2, 3, 4, 8 or
+                                        0 (for 4 byte integers). */
+        unsigned int headersize;     /* prevrawlensize + lensize. */
+        unsigned char encoding;      /* Set to ZIP_STR_* or ZIP_INT_* depending
+                                        on the entry encoding. However for 4
+                                        byte integers the encoding is stored
+                                        in the unsigned int len. */
+        unsigned char *p;            /*指向当前节点的起始位置 */
+    } zlentry;
+    ```
+
+    - redis7:底层使用listpack和hashtable两种数据结构，当hash对象保存的键值对数量小于512且所有键值对的长度都小于64字节时，使用listpack编码格式，否则使用hashtable编码格式，当hash对象保存的键值对数量小于512且所有键值对的长度都小于64字节时，使用listpack编码格式，否则使用hashtable编码格式
+
+    - listpack的出现是由于ziplist会存在连锁更新的问题，为了解决这个问题listpack中的节点不再存储前一个节点的长度数据，因此listpack结构分为四个部分：1.用4个字节记录整个listpack的占用内存大小，2.用两个字节记录节点个数，3.N个节点，4.结束标志。
+      - 节点的结构：1.编码类型，2.实际的数据，3.编码类型和元素数据的总长度
+
+
+- List
+  - redis6:list=quicklist+ziplist
+  - redis7:list=listpack+quicklist
+
+- Quicklist
+  - quicklist是一个双向链表，每个节点都是一个ziplist+指向前后节点的指针，每个ziplist中存储多个数据，因此quicklist可以看作是一个由ziplist组成的双向链表，在redis7中为了解决ziplist的连锁更新问题，用listpack代替ziplist，quicklist的节点结构：
+    ```C
+    typedef struct quicklistNode {
+        struct quicklistNode *prev;
+        struct quicklistNode *next;
+        unsigned char *zl;    /*指向当前节点的ziplist */
+        unsigned int sz;             /* ziplist size in bytes */
+        unsigned int count : 16;     /* count of items in ziplist */
+        unsigned int encoding : 2;   /* RAW==1 or LZF==2 */
+        unsigned int container : 2;  /* NONE==1 or ZIPLIST==2 */
+        unsigned int recompress : 1; /* was this node previously compressed? */
+        unsigned int attempted_compress : 1; /* node can't compress; too small */
+        unsigned int extra : 10; /* more bits to steal for future usage */
+    } quicklistNode;
+    ```
+
+- Set
+
+set结构一致没有变化，如果数据是数值类型且数量小于512（默认）则使用intset，否则使用hashtable
+
+- Zset
+  - redis6:底层使用ziplist和skiplist两种数据结构，当有序集合保存的元素数量小于128且所有元素成员的长度都小于64字节时，使用ziplist编码格式，否则使用skiplist编码格式，如果一开始使用ziplist,后续数据库增加可以升级为skiplist，但是反过来不行
+  - redis7:底层使用listpack和skiplist两种数据结构，当有序集合保存的元素数量小于128且所有元素成员的长度都小于64字节时，使用listpack编码格式，否则使用skiplist编码格式，如果一开始使用listpack,后续数据库增加可以升级为skiplist，但是反过来不行
+  - skiplist的节点结构：
+    ```C
+    typedef struct zskiplistNode {
+        sds ele; //成员对象
+        double score; //分数
+        struct zskiplistNode *backward; //指向前一个节点的指针
+        struct zskiplistLevel {
+            struct zskiplistNode *forward; //指向下一个节点的指针
+            unsigned long span; //跨度，记录当前节点到下一个节点的距离
+        } level[]; //层，每一层都有一个指向下一个节点的指针和跨度
+    } zskiplistNode;
+    ```
+  
+- skipList：跳表指的是可以实现二分查找的有序链表，跳表是一种随机化的数据结构，基于并联的链表，其效率可以和平衡树相媲美，跳表在链表的基础上增加了多级索引，通过多级索引可以快速定位到链表的某一位置，从而提高查找效率，跳表的时间复杂度为O(logn)，空间复杂度为O(n)
+
+### Redis底层通信原理分析-多路复用原理
+
+- 多路复用是非阻塞IO模型，底层支持是epoll，原来是select后来是poll最终是epoll。
+  - select:底层使用数组存储fd，当fd数量超过1024时，需要重新分配内存，效率低，而且每次都需要遍历fd，效率低
+  - poll:底层使用链表存储fd，当fd数量可以超过1024时，不需要重新分配内存，效率高，但是每次都需要遍历fd，效率低
+  - epoll:底层使用红黑树存储fd，当fd数量超过1024时，不需要重新分配内存，效率高，给每个fd注册一个回调函数，当事件就绪则通过回调函数加入就绪列表，只需要便利列表即可
+
+### Redis底层通信原理分析-事件循环机制
+

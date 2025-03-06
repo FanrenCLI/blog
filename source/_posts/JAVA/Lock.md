@@ -69,7 +69,7 @@ JVM按随机、就近原则分配锁的机制则称为不公平锁，ReentrantLo
 - Owner：当前已经获取到所资源的线程被称为Owner； 
 - !Owner：当前释放锁的线程。
 
-![Synchronized实现原理](http://39.106.34.39:4567/20211222223047.png)
+![Synchronized实现原理](http://fanrencli.cn/fanrencli.cn/20211222223047.png)
 
 - Owner线程会在unlock时，将ContentionList中的部分线程迁移到EntryList中，并指定EntryList中的某个线程为OnDeck线程（一般是最先进去的那个线程）。
 - Owner线程并不直接把锁传递给OnDeck线程，而是把锁竞争的权利交给OnDeck，OnDeck需要重新竞争锁。这样虽然牺牲了一些公平性，但是能极大的提升系统的吞吐量，在JVM中，也把这种选择行为称之为“竞争切换”。
@@ -298,12 +298,12 @@ public static void main(String[] args) {
 AQS作为锁的实现基座，锁主要面向使用者，AQS主要面向实现者。JUC框架中常用的锁：ReentrantLock，CountDownLatch，CyclicBarrier，Semaphore,ReadAndWriteLock都是基于AQS实现的锁。AQS的基本逻辑如下图所示，主要由state（资源）以及CLH队列（FIFO）组成，其中state作为资源锁，如果为0则无线程占用锁，不为0则有线程占用，且根据实现的锁的逻辑，可以用于实现可重入锁，以及信号量等类型的锁。
 
 
-![AQS](http://39.106.34.39:4567/lock1.png)
+![AQS](http://fanrencli.cn/fanrencli.cn/lock1.png)
 
 ### AQS实现锁代码示例
 
 以ReentrantLock为例，我们只需要实现`tryLock`和`tryRelease`方法即可。
-![MyLock](http://39.106.34.39:4567/lock2.jpg)
+![MyLock](http://fanrencli.cn/fanrencli.cn/lock2.jpg)
 
 ```java
 package com.example.mylock;
