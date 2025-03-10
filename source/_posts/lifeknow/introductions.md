@@ -25,7 +25,7 @@ categories:
 
 - **编程语言**: Java, Python, JavaScript (基础)
 - **框架**: Spring Boot, Spring MVC, Spring Cloud, MyBatis, Hibernate
-- **数据库**: MySQL, Redis，OB，GuassDB
+- **数据库**: MySQL, Redis
 - **工具**: Git, Maven, Docker, Jenkins, Kubernetes
 - **其他**: RESTful API设计,领域模型构建, 微服务架构, 消息队列（RabbitMQ）, Linux (基础)
 
@@ -55,10 +55,12 @@ categories:
 ## 项目经验
 
 ### 项目名称: [基础数据底座]  
-**项目描述**: [简要描述项目的背景和目标]  
+**项目描述**: 随着金融业务的快速发展，业务的复杂程度逐渐增加，原有的数据库表设计无法满足业务需求。因此，需要重新设计数据库表，优化项目结构，以适应业务的发展。
+
 **技术栈**: Java, Spring Boot, MySQL, Dubbo，RabbitMQ
+
 **职责与成果**:  
-- 负责项目核心模块的设计与开发，使用Spring Boot结合Dubbo构建RESTful API接口和RPC接口调用。  
+- 参与项目核心模块的设计与开发，使用Spring Boot结合Dubbo构建RESTful API接口和RPC接口调用。  
 - 结合mybatis-plus和velocity实现项目基础代码自动生成提高开发效率。
 - 结合DDD领域驱动设计原则，搭建项目结构，根据业务逻辑，实现业务功能。
 - 结合金融领域模型，实现基础数据表（产品，机构，证券，账户等）的设计，优化数据库表结构，提升查询性能。
