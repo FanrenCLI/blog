@@ -337,9 +337,19 @@ public class kafkaDemo {
 
 broker上线新节点和下线旧节点时，需要进行数据迁移操作，避免影响集群性能。数据迁移过程如下：
 1. 将数据从原来的节点重新负载均衡到其他所有节点上
-
-
-2. 将数据从某个节点迁移到其他节点上，从而下线
+   - 生成迁移计划,创建JSON文件`topics-to-move.json`：  
+    ```json
+    {"topics": [{"topic": "test_topic1"}, {"topic": "test_topic2"}], "version": 1}
+    ```
+   - 执行命令生成迁移计划：
+    ```bash
+    bin/kafka-reassign-partitions.sh --zookeeper zk:2181 --topics-to-move-json-file topics-to-move.json   --broker-list "4,5,6" --generate
+    ```
+   - 输出结果包含当前分区分布和建议的新分布,将建议的JSON保存为reassignment.json：
+    ```bash
+    bin/kafka-reassign-partitions.sh --zookeeper zk:2181  --reassignment-json-file reassignment.json --execute
+    ```
+2. 将数据从某个节点迁移到其他节点上，从而下线,同理
 
 
 ### 5. kafka与rabbitmq区别
