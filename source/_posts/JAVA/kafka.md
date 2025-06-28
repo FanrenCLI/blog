@@ -95,11 +95,244 @@ Kafka 的主要组件包括：生产者（Producer）、消费者（Consumer）�
 - 生产者发送数据首先创建一个ProducerRecord对象，包含topic、key、value、timestamp等信息。经过拦截器，序列化器，分区器，经过网络传输发送到broker。
 - 其中分区器的作用是根据key和partition的值来决定消息发送到哪个分区，如果key和partition都为空，则使用轮询的方式发送到不同的分区。首先将数据放入缓冲区中，然后根据batch.size和linger.ms的值来决定是否发送数据，如果缓冲区满了或者等待时间到了，则将缓冲区的数据发送到broker。
 - sender线程读取数据，NetWorkClient发送请求通过Selector进行网络传输，回调函数处理broker的响应。如果broker没有应答，则sender线程会进行重试，如果重试次数超过了设定的值，则将消息放入死信队列中。
-- broker接收到消息之后，首先会进行消息的校验，然后根据消息的key进行hash，根据hash值找到对应的分区，将消息存储到分区中。分区存储消息的时候，会根据消息的timestamp进行排序，如果timestamp相同，则根据消息的key进行排序，如果key相同，则根据消息的offset进行排序。
+- broker接收到消息之后，首先会进行消息的校验，分区策略选择分区，将消息存储到分区中。分区存储消息的时候，会根据消息的timestamp进行排序，如果timestamp相同，则根据消息的key进行排序，如果key相同，则根据消息的offset进行排序。
 
+#### 代码实战
+
+```java
+package com.example.kafka;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import java.util.Properties;
+import java.util.concurrent.ExecutionException;
+public class kafkaDemo {
+    public static void main(String[] args) throws InterruptedException, ExecutionException {
+        Properties properties = new Properties();
+        properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,"localhost:9092");
+        properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,"org.apache.kafka.common.serialization.StringSerializer");
+        properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,"org.apache.kafka.common.serialization.StringSerializer");
+        KafkaProducer<Object, Object> kafkaProducer = new KafkaProducer<>(properties);
+        for (int i = 0; i < 10; i++) {
+            // 异步发送
+            kafkaProducer.send(new ProducerRecord<>("test","testMessage"+i), (recordMetadata, e) -> {
+                if (e == null){
+                    System.out.println(recordMetadata.topic()+"--->"+recordMetadata.partition());
+                }
+            });
+        }
+        // 将缓冲区的数据刷掉
+        kafkaProducer.flush();
+        Thread.sleep(5000);
+        for (int i = 0; i < 10; i++) {
+            // 同步发送
+            kafkaProducer.send(new ProducerRecord<>("test","testMessage123"+i)).get();
+        }
+        // 关闭资源
+        kafkaProducer.close();
+    }
+}
+```
+
+#### 生产者分区原理
+
+1. 分区策略
+- 生产者发送消息时，如果选择了分区，那么就发送到对应的分区中
+- 如果不选择那么会根据key和partition的hash%numberofPartition值来决定消息发送到哪个分区，
+- 如果key和partition都为空，采用黏性分区器，第一次随机选择一个分区，后续发送到这个分区，直到这个分区满了，再随机选择一个分区，以此类推。
+
+2. 自定义分区器
+
+如果实际开发过程中，分区策略不满足我们的需求，那么我们可以定义自己的分区器
+
+```java
+package com.example.kafka;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.Partitioner;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.Cluster;
+
+import java.util.Map;
+import java.util.Properties;
+import java.util.concurrent.ExecutionException;
+public class kafkaDemo {
+    public static void main(String[] args) throws InterruptedException, ExecutionException {
+        Properties properties = new Properties();
+        properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,"localhost:9092");
+        properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,"org.apache.kafka.common.serialization.StringSerializer");
+        properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,"org.apache.kafka.common.serialization.StringSerializer");
+        // 关联自定义分区器
+        properties.put(ProducerConfig.PARTITIONER_CLASS_CONFIG, myPartition.class.getName());
+        KafkaProducer<Object, Object> kafkaProducer = new KafkaProducer<>(properties);
+        for (int i = 0; i < 10; i++) {
+            // 异步发送
+            kafkaProducer.send(new ProducerRecord<>("test","testMessage"+i), (recordMetadata, e) -> {
+                if (e == null){
+                    System.out.println(recordMetadata.topic()+"--->"+recordMetadata.partition());
+                }
+            });
+        }
+        // 将缓冲区的数据刷掉
+        kafkaProducer.flush();
+        Thread.sleep(5000);
+        for (int i = 0; i < 10; i++) {
+            // 同步发送
+            kafkaProducer.send(new ProducerRecord<>("test","testMessage123"+i)).get();
+        }
+        // 关闭资源
+        kafkaProducer.close();
+    }
+    // 自定义分区器
+    class myPartition implements Partitioner {
+        @Override
+        public int partition(String topic, Object key, byte[] keyBytes, Object value, byte[] valueBytes, Cluster cluster) {
+
+            String msgValue = value.toString();
+
+            if (msgValue.contains("test")){
+                return 0;
+            }else{
+                return 1;
+            }
+        }
+
+        @Override
+        public void close() {
+
+        }
+
+        @Override
+        public void configure(Map<String, ?> configs) {
+
+        }
+    } 
+}
+
+```
+
+#### 生产者的吞吐量
+
+1. 批次大小 batch.size
+- 生产者发送消息时，会批量发送，每次发送的批次大小默认为16k，如果批次满了，那么就会发送消息。
+2. 延迟时间 linger.ms
+- 如果批次没有满，那么会等待linger.ms时间，如果时间到了，就会发送消息，如果批次还是没有满，那么也会发送消息。
+3. 压缩算法 compression.type
+- 生产者发送消息时，可以压缩消息，压缩算法有：none、gzip、snappy、lz4、zstd，默认为none，不压缩，压缩可以减少网络传输的数据量，但是会增加cpu的消耗。
+
+```java
+package com.example.kafka;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import java.util.Properties;
+import java.util.concurrent.ExecutionException;
+public class kafkaDemo {
+    public static void main(String[] args) throws InterruptedException, ExecutionException {
+        Properties properties = new Properties();
+        properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,"localhost:9092");
+        // 序列化
+        properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,"org.apache.kafka.common.serialization.StringSerializer");
+        properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,"org.apache.kafka.common.serialization.StringSerializer");
+        // 缓冲区大小
+        properties.put(ProducerConfig.BUFFER_MEMORY_CONFIG,"33554432");
+        // 批次大小
+        properties.put(ProducerConfig.BATCH_SIZE_CONFIG,"16384");
+        // 延迟时间
+        properties.put(ProducerConfig.LINGER_MS_CONFIG,"1");
+        // 压缩算法
+        properties.put(ProducerConfig.COMPRESSION_TYPE_CONFIG,"snappy");
+        KafkaProducer<Object, Object> kafkaProducer = new KafkaProducer<>(properties);
+        for (int i = 0; i < 10; i++) {
+            // 异步发送
+            kafkaProducer.send(new ProducerRecord<>("test","testMessage"+i), (recordMetadata, e) -> {
+                if (e == null){
+                    System.out.println(recordMetadata.topic()+"--->"+recordMetadata.partition());
+                }
+            });
+        }
+        // 将缓冲区的数据刷掉
+        kafkaProducer.flush();
+        Thread.sleep(5000);
+        for (int i = 0; i < 10; i++) {
+            // 同步发送
+            kafkaProducer.send(new ProducerRecord<>("test","testMessage123"+i)).get();
+        }
+        // 关闭资源
+        kafkaProducer.close();
+    }
+}
+
+```
+
+#### 数据的可靠性
+
+1. acks
+
+- acks=0：生产者在消息发送出去之后，不需要等待任何的响应，所以这个方式会有最大的吞吐量，但是也是最不可靠的。
+- acks=1：生产者在消息发送出去之后，只要leader副本收到消息，就会响应，所以这个方式会有一定的吞吐量，但是也是比较可靠的。
+- acks=all：生产者在消息发送出去之后，只有当ISR列表中所有的副本都收到消息，才会响应，所以这个方式会有最小的吞吐量，但是也是最可靠的。如果某个副本长时间（默认30s）未向leader发送请求同步数据，那么leader会将该副本从ISR列表中移除，当ISR列表为空时，leader会变为follower，此时生产者发送的消息会失败。
  
+通常在生产环境中，如果时日志场景，通常可以设置为1，如果是重要数据则设置all，同时保证副本大于等于2，以及应答副本大于等于2。在某些场景中，如果leader和副本都收到了消息，但是在回应前宕机了，此时生产者重复发送，可能导致数据重复。
 
-### kafka与rabbitmq区别
+```java
+// 应答策略
+properties.put(ProducerConfig.ACKS_CONFIG,"all");
+// 重试次数默认int的最大值
+properties.put(ProducerConfig.RETRIES_CONFIG,3);
+```
+
+#### 数据重复
+
+根据数据可靠性原理的讲解，在某一些场景中可能存在重复数据的场景，此时我们引入幂等性问题，当我们结合数据的可靠性和幂等性时，那么就可以精确的传输数据，保证数据不丢失，不重复。
+
+1. 幂等性： 指发送方重复发送消息，broker只会持久化一次，在0.11版本后，kafka默认提供了幂等性，只需要将producer的配置中enable.idempotence设置为true即可。原理：通过三元组 `<PID, Partition, SeqNumber>`,PID表示一个会话，Partition表示分区，SeqNumber表示序列号，broker会为每个生产者分配一个PID，生产者发送消息时，会携带PID和序列号，broker接收到消息后，会判断该消息是否重复，如果重复，则不持久化。所以，只能保证单分区单会话不重复。
+  
+
+2. 事务：幂等性在保证数据的重复性只保证单分区单会话不重复，但是生产者重启之后还会存在问题，因为要解决这个问题，还需要使用kafka的事务特性,要使用事务特性，首先需要开启幂等性，当然幂等性是默认开启的。通过指定唯一的事务id，broker会保存事务id和PID的对应关系，当生产者发送消息时，会携带事务id，broker接收到消息后，会判断该消息是否重复，如果重复，则不持久化。同时，事务id可以保证多个生产者同时发送消息，不会产生冲突。
+
+用户需为生产者配置全局唯一且持久化的事务ID​（如transactional.id=order_service）。该ID在生产者重启后保持不变，作为跨会话的锚点。首次初始化事务时，事务协调器（Transaction Coordinator）将事务ID与PID绑定，并持久化到内部Topic（__transaction_state）。生产者重启后，通过相同事务ID向协调器请求，即可恢复原始PID，而非生成新PID
+
+```java
+package com.example.kafka;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import java.util.Properties;
+public class kafkaDemo {
+    public static void main(String[] args)  {
+        Properties properties = new Properties();
+        properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,"localhost:9092");
+        // 序列化
+        properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,"org.apache.kafka.common.serialization.StringSerializer");
+        properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,"org.apache.kafka.common.serialization.StringSerializer");
+        // 指定事务id
+        properties.put(ProducerConfig.TRANSACTIONAL_ID_CONFIG,"transactionalId_01");
+        KafkaProducer<Object, Object> kafkaProducer = new KafkaProducer<>(properties);
+        kafkaProducer.initTransactions();
+        kafkaProducer.beginTransaction();
+        try{
+            for (int i = 0; i < 10; i++) {
+                // 异步发送
+                kafkaProducer.send(new ProducerRecord<>("test","testMessage"+i));
+            }
+            kafkaProducer.commitTransaction();
+        }catch (Exception e){
+            kafkaProducer.abortTransaction();
+        }finally {
+            kafkaProducer.close();
+        }
+    }
+}
+
+```
+
+#### 数据有序性
+
+1. 单分区有序：生产者发送消息时，会按照顺序发送，消费者按照顺序消费，但是生产者发送消息时，如果发送到不同的分区，那么消息的顺序就无法保证了，因为不同的分区之间无法保证顺序。如果未开启幂等，要保证单分区有序，需要将max.in.flight.requests.per.connection设置为1，但是这样会降低吞吐量，所以通常情况下，我们开启幂等性，这样max.in.flight.requests.per.connection默认为5，这样也可以保证单分区有序，因为幂等性传输存在序列号，可以进行排序。如果大于5，因为缓存只能保存5个消息，超过溢出导致无法排序。
+
+
+### 5. kafka与rabbitmq区别
 
 ​Kafka​
 - 分布式日志系统​：以分区（Partition）形式持久化消息到磁盘，依赖顺序追加写入实现高吞吐。
