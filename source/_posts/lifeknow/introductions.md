@@ -1,10 +1,3 @@
----
-title: 简历
-date: 2024-12-22 19:43:56
-categories:
-    - Java
----
-
 # [陆杰]
 
 **联系方式**  
@@ -17,24 +10,24 @@ categories:
 
 ## 个人简介
 
-我是一名具有3年Java后端开发经验的软件工程师，擅长使用Spring Boot、MySQL、Redis等技术构建高性能、可扩展的后端系统，同时追求挑战自我，学习先进的AI技能和算法，对深度学习相关的框架和算法也有深入研究。具备良好的代码规范和团队协作能力，热衷于学习新技术并解决复杂的技术问题。希望在贵公司继续提升自己的技术能力，同时为团队和公司创造价值。
+我是一名具有xx年Java后端开发经验的软件工程师，擅长使用Spring Boot、MySQL、Redis等技术构建高性能、可扩展的后端系统，同时追求挑战自我，学习先进的AI技能和算法，对深度学习相关的框架和算法也有深入研究。具备良好的代码规范和团队协作能力，热衷于学习新技术并解决复杂的技术问题。希望在贵公司继续提升自己的技术能力，同时为团队和公司创造价值。
 
 ---
 
 ## 技术栈
 
 - **编程语言**: Java, Python, JavaScript (基础)
-- **框架**: Spring Boot, Spring MVC, Spring Cloud, MyBatis, Hibernate
+- **框架**: Spring Boot, Spring MVC, Spring Cloud, MyBatis
 - **数据库**: MySQL, Redis
 - **工具**: Git, Maven, Docker, Jenkins, Kubernetes
-- **其他**: RESTful API设计,领域模型构建, 微服务架构, 消息队列（RabbitMQ）, Linux (基础)
+- **其他**: RESTful API设计,领域模型构建, 微服务架构, 消息队列（RabbitMQ,kafka）, Linux (基础)
 
 ---
 
 ## 工作经验
 
 ### [恒生电子科技有限公司] - Java后端开发工程师  
-**工作时间**: [2022.8] - [至今]  
+**工作时间**: [2022.8] - [2025.5]  
 **工作职责**:  
 - 负责公司核心业务系统的后端开发与维护，使用Spring Boot框架构建RESTful API。  
 - 结合实际金融业务模型，优化数据库表结构，提高数据查询速度。  
