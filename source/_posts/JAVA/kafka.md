@@ -89,7 +89,7 @@ Kafka 的主要组件包括：生产者（Producer）、消费者（Consumer）�
 
 ### 3. Kafka生产者原理
 
-![KAFKA](http://fanrencli.cn/fanrencli.cn/kafka2.png)
+![KAFKA-生产者](http://fanrencli.cn/fanrencli.cn/kafka2.png)
 
 生产者主要流程：
 - 生产者发送数据首先创建一个ProducerRecord对象，包含topic、key、value、timestamp等信息。经过拦截器，序列化器，分区器，经过网络传输发送到broker。
@@ -386,6 +386,228 @@ broker上线新节点和下线旧节点时，需要进行数据迁移操作，�
 
 ### 5. 消费者
 
+消息消费的模式一般分为两种：pull（拉取）和push（推送）。
+- pull：消费者主动从broker拉取数据，消费者可以根据自己的消费能力来拉取数据，可以控制消费速度，但是需要消费者自己处理拉取数据的时间间隔。如果kafka没有数据，消费者会陷入空循环
+- push：broker主动将数据推送给消费者，broker可以根据自己的能力来推送数据，但是消费者无法控制消费速度，可能会导致消费者处理不过来，导致消息堆积。
+
+#### 消费者工作流程
+
+- 一个消费者可以消费多个分区的数据
+- 一个消费者组中的消费者可以消费不同分区的数据，但是一个分区只能被一个消费者组中的一个消费者消费
+- 消费者消费的offset保存在kafka中(__consumer_offsets)，当消费者宕机时，可以从kafka中获取到上次消费的offset，然后继续消费,不保存在zk中是因为可以降低与zk的交互
+
+#### 消费者组
+
+消费者组：消费者组是由多个消费者组成的，消费者组可以消费多个分区的数据，消费者组中的消费者可以消费不同分区的数据，但是一个分区只能被一个消费者组中的一个消费者消费。
+  
+消费者组中的消费者消费数据时，会根据分区数和消费者数来确定每个消费者消费的分区，如果分区数小于消费者数，那么会有消费者空闲，如果分区数大于消费者数，那么会有消费者消费多个分区。
+
+消费者组初始化流程：
+  - coordinator:辅助实现消费者组的初始化和分区分配，每个消费者组都会有一个coordinator，coordinator在kafka集群中每个broker中，根据hscode(groupId)%50（__consumer_offsets的分区数量）,选择一个broker作为coordinator，同时消费者的offset也往这个分区提交。
+  - 所有消费者向coordinator发送JoinGroup请求，coordinator会根据消费者的信息，选择一个消费者作为leader，其他消费者作为follower.
+  - leader消费者根据分区策略`partition.assignment.strategy`：range、roundrobin、sticky、CooperativeSticky，制定分区计划，
+    - range(默认):针对某个tpoic分区，将分区按照顺序分配给消费者，例如有3个分区，2个消费者，那么第一个消费者消费前两个分区，第二个消费者消费最后一个分区。
+    - roundrobin:针对所有topic的分区，将分区按照顺序分配给消费者，例如有3个分区，2个消费者，那么第一个消费者消费第一个分区，第二个消费者消费第二个分区，第一个消费者消费第三个分区，然后循环。
+    - sticky:数量尽可能均匀，且随机分配，不按照顺序分配，当消费者出现问题后，再分配时会尽量不变动原来消费者的分区，只在基础上进行微调
+  - leader消费者制定的分区计划发送给coordinator，coordinator将分区计划发送给所有消费者。每个消费者与coordinator保持心跳，如果消费者与coordinator长时间(`session.timeout.ms`=45s)没有心跳或者消费者处理消息时间过长(`max.poll.interval.ms`=5min)，那么coordinator会将消费者从消费者组中移除并触发再平衡。
+
+
+![KAFKA消费流程](http://fanrencli.cn/fanrencli.cn/kafka4.png)
+
+消费流程：
+  - 消费者发起消费请求sendFetchRequest后，会创建socket客户端，客户端从kafka获取数据，请求参数：`Fetch.min.bytes`每批次最小抓取大小1b、`Fetch.max.wait.ms`一批数据最小值未达到的超时时间500ms、`Fetch.max.bytes`每批次最大抓取大小50M
+  - 拉取完成completedFetches拉取数据之后放入队列中，然后消费者从队列中获取数据`Max.poll.records`一次拉取数据返回消息的最大条数500。获取数据后还需要通过反序列化和拦截器处理。
+
+代码示例
+```java
+package com.example.kafka;
+
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.serialization.StringDeserializer;
+
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Properties;
+
+public class Consumer {
+    public static void main(String[] args) {
+        Properties properties = new Properties();
+        properties.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+        properties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+        properties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+        // 指定groupid
+        properties.put(ConsumerConfig.GROUP_ID_CONFIG, "group1");
+        KafkaConsumer<String,String> kafkaConsumer = new KafkaConsumer<>(properties);
+        List<String> topic = new ArrayList<>();
+        topic.add("test");
+        kafkaConsumer.subscribe(topic);
+        while(true){
+            ConsumerRecords<String, String> consumerRecords = kafkaConsumer.poll(Duration.ofSeconds(1));
+            for (ConsumerRecord<String, String> consumerRecord : consumerRecords) {
+                System.out.println(consumerRecord);
+            }
+        }
+
+    }
+}
+
+```
+```java
+public class Consumer {
+    public static void main(String[] args) {
+        Properties properties = new Properties();
+        properties.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+        properties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+        properties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+        properties.put(ConsumerConfig.GROUP_ID_CONFIG, "group1");
+        // 消费者组分区策略
+        properties.put(ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, RangeAssignor.RANGE_ASSIGNOR_NAME);
+        KafkaConsumer<String,String> kafkaConsumer = new KafkaConsumer<>(properties);
+        // 消费指定主题的特定分区数据
+        List<TopicPartition> topic = new ArrayList<>();
+        topic.add(new TopicPartition("test",0));
+        kafkaConsumer.assign(topic);
+        while(true){
+            ConsumerRecords<String, String> consumerRecords = kafkaConsumer.poll(Duration.ofSeconds(1));
+            for (ConsumerRecord<String, String> consumerRecord : consumerRecords) {
+                System.out.println(consumerRecord);
+            }
+        }
+
+    }
+}
+```
+
+#### offset
+
+消费者再消费消息时，需要知道从哪个位置开始消费，这个位置就是offset，offset是消费者组级别的，每个消费者组都有自己的offset。offset信息保存再kafka中，每个消费者的offset信息保存于对应分区所在broker的__consumer_offsets主题中(0.9版本以前在zk)，每个消费者组对应一个分区，分区数由`offsets.topic.num.partitions`配置，默认50个分区。因为一个消费者组只能有一个消费者消费一个分区，所以offset保存时按照key-value进行保存，其中key=groupId-topic-partition，value=offset。消费者在消费消息时，会从__consumer_offsets主题中获取offset，然后从对应分区中获取消息。
+
+- enable.auto.commit：是否自动提交offset，默认true
+- auto.commit.interval.ms：自动提交offset的时间间隔，默认5s
+
+kafka默认自动提交offset,让开发者专注于业务逻辑，但是如果需要手动提交也可以实现
+
+- 手动提交offset
+  - 同步提交：`consumer.commitSync()`，会阻塞直到提交成功，如果提交失败会抛出异常，需要捕获异常进行处理。
+  - 异步提交：`consumer.commitAsync()`，不会阻塞，提交成功会回调一个接口，提交失败不会抛出异常，需要手动捕获异常进行处理。
+- 指定offset消费：`auto.offset.reset`
+  - earliest：从最早的消息开始消费,`--from-beginning`
+  - latest：从最新的消息开始消费
+  - none：如果offset不存在，则抛出异常
+- 指定时间戳消费：`consumer.seek(topicPartition, timestamp)`，从指定时间戳开始消费
+代码示例
+```java
+package com.example.kafka;
+
+import org.apache.kafka.clients.consumer.*;
+import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.serialization.StringDeserializer;
+
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Properties;
+import java.util.Set;
+
+public class Consumer {
+    public static void main(String[] args) {
+        Properties properties = new Properties();
+        properties.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+        properties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+        properties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+        properties.put(ConsumerConfig.GROUP_ID_CONFIG, "group1");
+        properties.put(ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, RangeAssignor.RANGE_ASSIGNOR_NAME);
+        KafkaConsumer<String,String> kafkaConsumer = new KafkaConsumer<>(properties);
+        // 消费指定主题的特定分区数据
+        List<TopicPartition> topic = new ArrayList<>();
+        topic.add(new TopicPartition("test",0));
+        kafkaConsumer.assign(topic);
+        // 指定消费offset,先获取对应分区的offset,由于获取时可能还未链接上对应分区，可能为空
+        Set<TopicPartition> assignment = kafkaConsumer.assignment();
+        while(assignment.size()==0){
+            kafkaConsumer.poll(Duration.ofMillis(100));
+            assignment = kafkaConsumer.assignment();
+        }
+        for (TopicPartition topicPartition : assignment) {
+            kafkaConsumer.seek(topicPartition, 100);
+        }
+        while(true){
+            ConsumerRecords<String, String> consumerRecords = kafkaConsumer.poll(Duration.ofSeconds(1));
+            for (ConsumerRecord<String, String> consumerRecord : consumerRecords) {
+                System.out.println(consumerRecord);
+            }
+            // 异步提交
+            kafkaConsumer.commitAsync();
+            // 同步提交
+            kafkaConsumer.commitSync();
+        }
+
+    }
+}
+```
+```java
+package com.example.kafka;
+
+import org.apache.kafka.clients.consumer.*;
+import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.internals.Topic;
+import org.apache.kafka.common.serialization.StringDeserializer;
+
+import java.time.Duration;
+import java.util.*;
+
+public class Consumer {
+    public static void main(String[] args) {
+        Properties properties = new Properties();
+        properties.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+        properties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+        properties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+        properties.put(ConsumerConfig.GROUP_ID_CONFIG, "group1");
+        properties.put(ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, RangeAssignor.RANGE_ASSIGNOR_NAME);
+        KafkaConsumer<String,String> kafkaConsumer = new KafkaConsumer<>(properties);
+        // 消费指定主题的特定分区数据
+        List<TopicPartition> topic = new ArrayList<>();
+        topic.add(new TopicPartition("test",0));
+        kafkaConsumer.assign(topic);
+        // 指定消费offset,先获取对应分区的offset,由于获取时可能还未链接上对应分区，可能为空
+        Set<TopicPartition> assignment = kafkaConsumer.assignment();
+        while(assignment.size()==0){
+            kafkaConsumer.poll(Duration.ofMillis(100));
+            assignment = kafkaConsumer.assignment();
+        }
+        // 获取所有分区对象，并设置不同分区的时间跨度一天前
+        Map<TopicPartition,Long> map = new HashMap<>();
+        for (TopicPartition topicPartition : assignment) {
+            map.put(topicPartition,System.currentTimeMillis()-1*24*3600*1000);
+        }
+        // 根据接口查询得到不同分区一天前的现在的offset
+        Map<TopicPartition, OffsetAndTimestamp> topicPartitionOffsetAndTimestampMap = kafkaConsumer.offsetsForTimes(map);
+        // 为不同分区设置offset
+        for (TopicPartition topicPartition : assignment) {
+            kafkaConsumer.seek(topicPartition, topicPartitionOffsetAndTimestampMap.get(topicPartition).offset());
+        }
+        while(true){
+            ConsumerRecords<String, String> consumerRecords = kafkaConsumer.poll(Duration.ofSeconds(1));
+            for (ConsumerRecord<String, String> consumerRecord : consumerRecords) {
+                System.out.println(consumerRecord);
+            }
+            // 异步提交
+            kafkaConsumer.commitAsync();
+            // 同步提交
+            kafkaConsumer. commitSync();
+        }
+
+    }
+}
+```
+
+- 重复消费：自动提交offset存在时间延迟，每隔5秒提交一次，如果下一次提交之前宕机，重启后可能重复消费。
+- 消息丢失：消费者还未消费完数据，提交offset，然后宕机，重启后无法重新消费。
+- 数据积压：消费者消费速度慢，生产者生产消息速度快，导致消息积压。提高分区数，增加消费者数量，提高一次性拉取的数据量
 
 ### 6. kafka与rabbitmq区别
 
