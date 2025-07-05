@@ -351,8 +351,43 @@ broker上线新节点和下线旧节点时，需要进行数据迁移操作，�
     ```
 2. 将数据从某个节点迁移到其他节点上，从而下线,同理
 
+#### broker副本信息
 
-### 5. kafka与rabbitmq区别
+- kafka副本的作用：提高数据的可靠性，提高数据的可用性，因为副本可以提供数据的读取，当某个节点宕机时，可以从副本中读取数据。
+- kafka默认副本1个，生产环境至少2个，保证副本的可靠性。太多的副本会占用大量的存储空间。
+- kafka的副本分为Leader和Follower，Leader负责读写数据，Follower负责同步数据，当Leader宕机时，Follower会选举出一个新的Leader。
+- kafka分区中的所有副本统称为AR（Assigned Replicas）
+  - AR = ISR + OSR
+  - ISR：In-Sync Replicas，与Leader保持同步的Follower集合，只有ISR中的副本才会被选举为Leader，如果follower长时间未向leader发送请求同步数据，那么leader会将该副本从ISR列表中移除，时间阈值为`replica.lag.time.max.ms`,默认30s。
+  - OSR：Out-of-Sync Replicas，与Leader同步滞后过多的Follower集合。
+
+- 选举过程（每个分区都有一个leader和follower）：
+  - 首先broker启动后会在zookeeper中创建临时节点`/controller`，该节点保存了当前集群的controller信息。
+  - 每个broker都有controller，谁先注册到zookeeper中，谁就是controller，controller会监听zookeeper中的`/controller`节点，如果controller宕机，跟随者会监听到该节点消失，然后重新竞争controller节点。
+  - 确定了controller之后，由controller将当前分区的所有ISR集合信息上传展zk，其他controlelr同步信息。总的来说，controller就是竞争zk中的临时节点，谁抢到谁就控制选举，并将所有的ISR信息上传zk，其他controller同步信息。
+  - 当分区leader宕机后，controller会监听到该分区leader消失，然后从zk中获取ISR集合，然后从ISR集合中选举新的leader，选举规则如下：确认ISR存活的节点信息，然后根据AR中的排序，选择靠前的节点作为leader
+
+- LEO：Log End Offset，每个副本的最后一个offset
+- HW：High Watermark，消费者可见的offset，HW是LEO中的最小值，消费者只能消费到HW之前的消息，HW之前的消息是可用的，HW之后的消息是未同步的，消费者不能消费到HW之后的消息。
+- 当leader收到生产者发送的数据之后，更新leo，然后获取所有follower的leo数据，然后更新自己的HW。消费者拉拉取数据后，更新leo，并根据leader的HW更新自己的HW。但是leader的HW还是0，因此follower还是0，只有等下次leader更新HW之后，follower才会更新HW。
+
+#### 文件存储
+
+- 分区文件：每个topic的文件以`topic_name-partition_id`命名，每个分区文件中包含多个segment文件，每个segment文件包含多个log文件和index文件，log文件存储数据，index文件存储索引，索引文件中存储的是offset和position，position是log文件中的偏移量，offset是消息的偏移量，通过offset可以快速定位到消息的位置。index是稀疏索引，大约每往log文件中写入4kb的数据，就会在index文件中写入一个索引，因此index文件的大小会比log文件小很多，但是索引的查找速度会比log文件快很多。
+- 文件清除策略：`log.retention.hours` 默认7天， `log.retention.check.interval.ms`定时检查是否过期的时间间隔。`log.cleanup.policy`默认是delete，如果设置为compact，那么会进行压缩，将相同key的消息合并，只保留最新的消息，这样就可以减少存储空间，但是会降低写入速度，因为需要合并消息。文件的过期时间判断是根据log文件中的最后一条消息的时间戳来判断的，如果最后一条消息的时间戳超过了过期时间，那么整个log文件都会被删除。
+
+#### 高效读写
+
+1. kafka本身是分布式集群，可以采用分区技术，将数据分散到不同的分区中，这样就可以实现数据的并行读写，提高读写速度。
+2. 读取数据采用稀疏索引，可以快速定位数据
+3. 顺序读写：kafka生产者产生的数据写入log文件采用追加写的方式，这样就可以避免磁盘的随机读写，提高读写速度。
+4. 页缓存+零拷贝：kafka写入数据时，会将数据写入页缓存，然后由操作系统将数据写入磁盘，这样就避免了数据的拷贝，提高了写入速度。读取数据时，也是从页缓存中读取，如果缓存中没有则从文件中读取，读取到数据之后不会切换用户态进行数据发送，而是直接从缓存中将数据发送给消费者。
+
+
+### 5. 消费者
+
+
+### 6. kafka与rabbitmq区别
 
 ​Kafka​
 - 分布式日志系统​：以分区（Partition）形式持久化消息到磁盘，依赖顺序追加写入实现高吞吐。
