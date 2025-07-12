@@ -680,14 +680,8 @@ public class ProducerController {
 
 ```
 
-### 7. kafka调优
 
-场景说明：100w日活，每人每天100条日志，总共每天1亿条数据，平均1150/s，峰值20000/s，数据量：20M/s
-
-
-
-
-### 8. kafka与rabbitmq区别
+### 7. kafka与rabbitmq区别
 
 ​Kafka​
 - 分布式日志系统​：以分区（Partition）形式持久化消息到磁盘，依赖顺序追加写入实现高吞吐。
