@@ -361,6 +361,8 @@ broker上线新节点和下线旧节点时，需要进行数据迁移操作，�
   - ISR：In-Sync Replicas，与Leader保持同步的Follower集合，只有ISR中的副本才会被选举为Leader，如果follower长时间未向leader发送请求同步数据，那么leader会将该副本从ISR列表中移除，时间阈值为`replica.lag.time.max.ms`,默认30s。
   - OSR：Out-of-Sync Replicas，与Leader同步滞后过多的Follower集合。
 
+![KAFKA副本Leader选举过程](http://fanrencli.cn/fanrencli.cn/kafka5.png)
+
 - 选举过程（每个分区都有一个leader和follower）：
   - 首先broker启动后会在zookeeper中创建临时节点`/controller`，该节点保存了当前集群的controller信息。
   - 每个broker都有controller，谁先注册到zookeeper中，谁就是controller，controller会监听zookeeper中的`/controller`节点，如果controller宕机，跟随者会监听到该节点消失，然后重新竞争controller节点。
@@ -611,7 +613,81 @@ public class Consumer {
 - 消息丢失：消费者还未消费完数据，提交offset，然后宕机，重启后无法重新消费。
 - 数据积压：消费者消费速度慢，生产者生产消息速度快，导致消息积压。提高分区数，增加消费者数量，提高一次性拉取的数据量
 
-### 6. kafka与rabbitmq区别
+### 6. SpringBoot集成
+
+- 配置信息
+
+```properties
+spring.application.name=springBootKafka
+server.port=8023
+
+spring.kafka.bootstrap-servers=localhost:9092
+
+spring.kafka.producer.key-serializer=org.apache.kafka.common.serialization.StringSerializer
+spring.kafka.producer.value-serializer=org.apache.kafka.common.serialization.StringSerializer
+
+
+spring.kafka.consumer.key-deserializer=org.apache.kafka.common.serialization.StringDeserializer
+spring.kafka.consumer.value-deserializer=org.apache.kafka.common.serialization.StringDeserializer
+
+spring.kafka.consumer.group-id="fanren"
+```
+
+- 生产者代码
+
+```java
+package com.example.springbootkafka;
+
+
+import org.springframework.context.annotation.Configuration;
+import org.springframework.kafka.annotation.KafkaListener;
+
+@Configuration
+public class ConsumerController {
+
+    @KafkaListener(topics = "test")
+    public void listen(String record) {
+        System.out.println(record);
+    }
+}
+
+```
+
+- 消费者代码
+
+```java
+package com.example.springbootkafka;
+
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class ProducerController {
+
+    @Autowired
+    private KafkaTemplate<String, String> kafkaTemplate;
+
+    @RequestMapping("test")
+    public String sendMessage(String message) {
+        kafkaTemplate.send("test", message);
+
+        return "ok";
+    }
+}
+
+```
+
+### 7. kafka调优
+
+场景说明：100w日活，每人每天100条日志，总共每天1亿条数据，平均1150/s，峰值20000/s，数据量：20M/s
+
+
+
+
+### 8. kafka与rabbitmq区别
 
 ​Kafka​
 - 分布式日志系统​：以分区（Partition）形式持久化消息到磁盘，依赖顺序追加写入实现高吞吐。
