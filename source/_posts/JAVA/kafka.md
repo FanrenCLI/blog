@@ -499,6 +499,7 @@ kafka默认自动提交offset,让开发者专注于业务逻辑，但是如果�
   - latest：从最新的消息开始消费
   - none：如果offset不存在，则抛出异常
 - 指定时间戳消费：`consumer.seek(topicPartition, timestamp)`，从指定时间戳开始消费
+
 代码示例
 ```java
 package com.example.kafka;
@@ -549,6 +550,7 @@ public class Consumer {
     }
 }
 ```
+
 ```java
 package com.example.kafka;
 
