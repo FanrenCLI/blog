@@ -38,6 +38,17 @@ Elasticsearch 是一个分布式搜索和分析引擎，用于存储和搜索大
 
 ### 数据库操作
 
+- 查询所有索引数据： GET /_cat/indices?v
+
+```http
+PUT http://localhost:9200/_cat/indices?v
+
+Response:
+health status index     uuid                   pri rep docs.count docs.deleted store.size pri.store.size
+green  open   shopping EUd-Fh97S8WkTG5VIkV6TA   1   0          0            0       225b           225b
+```
+
+
 - 创建索引：PUT /index_name
 
 ```http
@@ -224,7 +235,7 @@ Content-type: application/json
 4. 集群监控类：
 | **关键词**        | **作用**       | **示例**               |
 |-------------------|---------------------|------------|
-| `_cat`            | **监控命令入口** (含60+子端点) | `GET /_cat/health`    |
+| `_cat`            | **监控命令入口** (含60+子端点) | `GET /_cat/indices`    |
 | `_cluster`        | 集群操作      | `GET /_cluster/health`|
 | `_nodes`          | 节点管理      | `GET /_nodes/stats`   |
 | `_tasks`          | 管理异步任务  | `GET /_tasks?detailed=true`           |
@@ -232,11 +243,273 @@ Content-type: application/json
 5. 安全类（这个在原回答中只有两列，没有示例列）：
 | **关键词**        | **作用**       |
 |-------------------|---------------------|
-| `_security`       | 用户/角色权限管理              |
+| `_security`       | 用户/角色权限管理    |
 | `_api_key`        | API密钥管理   |
-| `_oidc`           | OpenID Connect认证            |
+| `_oidc`           | OpenID Connect认证  |
 
 ### 代码实战
+
+- 依赖引入
+
+```xml
+<!-- 高级客户端，es8+之后推荐 -->
+<!-- https://mvnrepository.com/artifact/co.elastic.clients/elasticsearch-java -->
+<dependency>
+    <groupId>co.elastic.clients</groupId>
+    <artifactId>elasticsearch-java</artifactId>
+    <version>9.1.0</version>
+</dependency>
+<!-- 高级客户端，不过只适用于es7+ -->
+<!-- https://mvnrepository.com/artifact/org.elasticsearch.client/elasticsearch-rest-high-level-client -->
+<dependency>
+    <groupId>org.elasticsearch.client</groupId>
+    <artifactId>elasticsearch-rest-high-level-client</artifactId>
+    <version>7.17.29</version>
+</dependency>
+<!-- 低级客户端，基础的线程管理和http访问 -->
+<!-- https://mvnrepository.com/artifact/org.elasticsearch.client/elasticsearch-rest-client -->
+<dependency>
+    <groupId>org.elasticsearch.client</groupId>
+    <artifactId>elasticsearch-rest-client</artifactId>
+    <version>9.1.0</version>
+</dependency>
+<!-- 如果使用springboot项目，使用此依赖可以通过spring进行管理，通过注解简化开发 -->
+<dependency>
+    <groupId>org.springframework.data</groupId>
+    <artifactId>spring-data-elasticsearch</artifactId>
+    <version>4.4.18</version>
+</dependency>
+```
+
+- 代码示例
+
+```java
+package com.example.es;
+
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch._types.Refresh;
+import co.elastic.clients.elasticsearch._types.SortOptions;
+import co.elastic.clients.elasticsearch._types.SortOrder;
+import co.elastic.clients.elasticsearch.core.*;
+import co.elastic.clients.elasticsearch.core.search.Hit;
+import co.elastic.clients.elasticsearch.indices.CreateIndexResponse;
+import co.elastic.clients.json.jackson.JacksonJsonpMapper;
+import co.elastic.clients.transport.rest_client.RestClientTransport;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import org.apache.http.HttpHost;
+import org.elasticsearch.client.RestClient;
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+
+@SpringBootTest
+class EsApplicationTests {
+    static class Product {
+        public String id;
+        public String name;
+        public double price;
+        public String category;
+
+        Product() {
+
+        }
+
+        public Product(String id, String name, double price, String category) {
+            this.id = id;
+            this.name = name;
+            this.price = price;
+            this.category = category;
+        }
+
+        public String getId() {
+            return id;
+        }
+
+        public void setId(String id) {
+            this.id = id;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public double getPrice() {
+            return price;
+        }
+
+        public void setPrice(double price) {
+            this.price = price;
+        }
+
+        public String getCategory() {
+            return category;
+        }
+
+        public void setCategory(String category) {
+            this.category = category;
+        }
+    }
+
+    public static ElasticsearchClient client;
+
+    @Test
+    public void testEs() throws Exception {
+        RestClient restClient = RestClient.builder(
+                new HttpHost("localhost", 9200, "http")
+        ).build();
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
+        RestClientTransport restClientTransport = new RestClientTransport(restClient, new JacksonJsonpMapper(objectMapper));
+        client = new ElasticsearchClient(restClientTransport);
+        createProductIndex();
+
+        Product product = new Product("p1", "Laptop", 1299.99, "Electronics");
+        indexProduct(product);     // 创建文
+        getProduct("p1");          // 获取文档
+        updateProductPrice("p1", 1199.99); // 更新文档
+        searchProducts("Laptop");  // 搜索文档
+        searchAllProducts();
+        deleteProduct("p1");       // 删除文档档
+        restClient.close();
+    }
+
+    // ========= 索引操作 =========
+    private static void createProductIndex() throws IOException {
+        // 检查索引是否存在
+        boolean exists = client.indices()
+                .exists(e -> e.index("products"))
+                .value();
+
+        if (!exists) {
+            // 创建索引并配置映射
+            CreateIndexResponse response = client.indices().create(c -> c
+                    .index("products")
+                    .mappings(m -> m
+                            .properties("id", p -> p.keyword(k -> k))
+                            .properties("name", p -> p.text(k -> k))
+                            .properties("price", p -> p.text(k -> k))
+                            .properties("category", p -> p.text(k -> k))
+                    )
+            );
+            System.out.println("索引创建结果: " + response.acknowledged());
+        }
+    }
+
+    // ========= 文档操作 =========
+    // 1. 索引文档 (UPSERT)
+    private static void indexProduct(Product product) throws IOException {
+        IndexResponse response = client.index(i -> i
+                .index("products")
+                .id(product.getId())
+                .document(product)
+        );
+        System.out.println("索引文档结果: " + response.result());
+    }
+
+    // 2. 获取文档
+    private static void getProduct(String id) throws IOException {
+        GetResponse<Product> response = client.get(g -> g
+                        .index("products")
+                        .id(id),
+                Product.class
+        );
+
+        if (response.found()) {
+            Product product = response.source();
+            System.out.println("获取到的产品: " + product.getName() + ", 价格: $" + product.getPrice());
+        } else {
+            System.out.println("文档不存在");
+        }
+    }
+
+    // 3. 更新文档 (部分更新)
+    private static void updateProductPrice(String id, double newPrice) throws IOException {
+        Map<String, Object> updatefield = new HashMap<>();
+        updatefield.put("price", newPrice);
+        UpdateResponse<Product> response = client.update(u -> u
+                        .index("products")
+                        .id(id)
+                        .doc(updatefield)
+                        .refresh(Refresh.True),
+                Product.class
+        );
+        System.out.println("更新结果: " + response.result());
+    }
+
+    // 4. 搜索文档
+    private static void searchProducts(String keyword) throws IOException {
+        SearchResponse<Product> response = client.search(s -> s
+                        .index("products")
+                        .query(q -> q
+                                .match(m -> m
+                                        .field("name")
+                                        .query(keyword)
+                                )
+                        )
+                        .from(0)
+                        .size(10)
+                        .sort(SortOptions.of(so -> so
+                                        .field(f -> f
+                                                .field("price")
+                                                .order(SortOrder.Desc)
+                                        )
+                                )
+                        )
+                        .source(sc -> sc
+                                .filter( f->f
+                                        .excludes("price")
+                                        .includes("name"))
+                        ),
+                Product.class
+        );
+        System.out.println("====== 搜索结果 =====");
+        System.out.println("总命中数: " + response.hits().total().value());
+        for (Hit<Product> hit : response.hits().hits()) {
+            Product p = hit.source();
+            System.out.printf("[%s] %s - $%.2f\n",
+                    p.getId(), p.getName(), p.getPrice());
+        }
+    }
+
+    // 5. 删除文档
+    private static void deleteProduct(String id) throws IOException {
+        DeleteResponse response = client.delete(d -> d
+                .index("products")
+                .id(id)
+        );
+        System.out.println("删除结果: " + response.result());
+    }
+
+    // 6. 搜索文档
+    private static void searchAllProducts() throws IOException {
+        SearchResponse<Product> response = client.search(s -> s
+                        .index("products")
+                        .query(q -> q
+                                .matchAll(m -> m)
+                        ),
+                Product.class
+        );
+        System.out.println("====== 全量查询结果 =====");
+        System.out.println("总命中数: " + response.hits().total().value());
+        for (Hit<Product> hit : response.hits().hits()) {
+            Product p = hit.source();
+            System.out.printf("[%s] %s - $%.2f\n",
+                    p.getId(), p.getName(), p.getPrice());
+        }
+    }
+}
+
+```
+
 
 ## Logstash
 
