@@ -510,6 +510,220 @@ class EsApplicationTests {
 
 ```
 
+- springboot集成elasticsearch
+
+```java
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.json.jackson.JacksonJsonpMapper;
+import co.elastic.clients.transport.ElasticsearchTransport;
+import co.elastic.clients.transport.rest_client.RestClientTransport;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import org.apache.http.HttpHost;
+import org.elasticsearch.client.RestClient;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.data.elasticsearch.client.elc.ElasticsearchTemplate;
+import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
+@Configuration
+public class ElasticsearchConfig {
+
+    @Value("${elasticsearch.host:localhost}")
+    private String host;
+    
+    @Value("${elasticsearch.port:9200}")
+    private int port;
+
+    @Bean
+    public ElasticsearchClient elasticsearchClient() {
+        // 1. 创建底层REST客户端
+        RestClient restClient = RestClient.builder(
+            new HttpHost(host, port, "http")
+        ).build();
+        
+        // 2. 创建JSON映射器
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule()); // 支持Java时间类型
+        
+        // 3. 创建传输层
+        ElasticsearchTransport transport = new RestClientTransport(
+            restClient, 
+            new JacksonJsonpMapper(mapper)
+        );
+        
+        // 4. 创建客户端实例
+        return new ElasticsearchClient(transport);
+    }
+    
+    // 可选：Spring Data Repository支持
+    @Bean
+    public ElasticsearchOperations elasticsearchTemplate(ElasticsearchClient restClient) {
+        return new ElasticsearchTemplate(restClient);
+    }
+}
+```
+
+```java
+package com.example.es;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.elasticsearch.annotations.Document;
+import org.springframework.data.elasticsearch.annotations.Field;
+import org.springframework.data.elasticsearch.annotations.FieldType;
+
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@ToString
+@Document(indexName = "product")
+public class Product {
+    @Id
+    private Long id;
+    @Field(type = FieldType.Text)
+    private String title;
+    @Field(type = FieldType.Keyword)
+    private String category;
+    @Field(type = FieldType.Double)
+    private Double price;
+    @Field(type = FieldType.Keyword,index = false)
+    private String images;
+}
+
+```
+
+```java
+public interface ProductRepository extends ElasticsearchRepository<Product, String> {
+    
+    // 自动实现查询方法
+    List<Product> findByName(String name);
+    
+    // 自定义查询
+    @Query("{\"match\": {\"name\": \"?0\"}}")
+    Page<Product> findByNameCustom(String name, Pageable pageable);
+    
+    // 聚合查询
+    @Aggregation(pipeline = {
+        "{'$group': {'_id': '$category', 'avgPrice': {'$avg': '$price'}}}"
+    })
+    Aggregations<Product> averagePriceByCategory();
+}
+```
+
+```java
+Product product = new Product("p1", "Laptop", 1299.99);
+IndexQuery indexQuery = new IndexQueryBuilder()
+    .withId(product.getId())
+    .withObject(product)
+    .build();
+
+String documentId = elasticsearchOperations.index(indexQuery, IndexCoordinates.of("products"));
+
+```
+
+
+### 集群 
+
+- 配置文件
+
+```yml
+# 同一个集群的所有节点必须使用相同的 cluster.name
+cluster.name: my-cluster
+
+# 节点名称，不同的节点不同
+node.name: node-1
+
+# 节点角色
+node.master: true
+
+# 存储数据
+node.data: true
+
+# 节点角色
+node.roles:
+  - data
+  - ingest
+  - ml
+
+# 数据目录
+path.data: /path/to/data
+
+# 日志目录
+path.logs: /path/to/logs
+
+# 网络绑定地址
+network.host: localhost
+
+# 端口
+http.port: 9201
+# tpc节点之间通信端口
+transport.tcp.port: 9301
+
+# 跨域访问
+http.cors.enabled: true
+http.cors.allow-origin: "*"
+
+# 集群发现
+#用于指定集群自动发现所需的初始主机节点列表(不要求一定是主节点)。这些主机节点用于引导新加入的节点发现和加入集群。
+discovery.seed_hosts: [“192.168.25.31:9300”, “192.168.25.32:9300”, “192.168.25.33:9300”]
+#用于指定集群的初始主节点列表。这些节点在集群启动时负责选举出主节点，并承担集群的管理和协调工作。
+cluster.initial_master_nodes: [“node-1”, “node-2”, “node-3”]
+
+discovery.zen.fd.ping_timeout: 1m
+discovery.zen.fd.ping_interval: 30s
+discovery.zen.fd.ping_retries: 5
+discovery.zen.minimum_master_nodes: 1
+
+```
+
+- 创建节点时指定分片数和副本数
+
+```java
+// 创建索引时指定分片数和副本数
+CreateIndexResponse createIndexResponse = client.indices().create(c -> c
+        .index("my-index")
+        .settings(s -> s
+                .numberOfShards(3)
+                .numberOfReplicas(2)
+        )
+);
+```
+
+- 数据新增时，路由计算：根据文档的_id进行哈希，然后对分片数取模，得到该文档应该存储在哪个分片上。
+- 数据查询时，分片控制：根据查询条件，确定需要查询哪些分片，然后并发查询这些分片，最后合并结果。
+- 数据新增流程：客户端请求任意一个协调节点，协调界面将请求发送到指定的分片节点，分片节点保存后，副本进行保存，然后返回客户端 
+- 数据查询流程：客户端请求任意一个协调节点，协调节点根据查询条件，确定需要查询哪些分片，然后并发查询这些分片，如果分片同时存在主分片和副本分片，则协调节点会随机选择一个分片进行查询，然后合并结果返回客户端。
+- 数据更新流程：客户端请求任意一个协调节点，协调节点将请求发送到指定的分片节点，分片节点更新后（如果当时分片正在被使用，则重试，超过最大次数则放弃），副本进行更新，然后返回客户端。
+
+近实时：数据新增后一般无法直接查询到数据，需要等待一秒
+
+1. Write阶段
+  - 数据写入内存缓冲区
+  - 同时写入translog(事务日志)保证可靠性
+  - 此时数据不可见
+
+2. Refresh阶段
+ - 内存缓冲区内容转为segment
+ - segment写入文件系统缓存
+ - 此时数据可被搜索
+ - 默认每秒执行一次
+
+3. Flush阶段
+  - 将文件系统缓存中的segment写入磁盘
+  - 清空旧的translog
+  - 保证数据持久化
+  
+Elasticsearch选举流程：
+- Elasticsearch的选举流程时ZenDiscovery模块负责的，主要包含：ping和unicast两个部分
+- ping阶段：节点通过节点间相互ping来确认节点是否存活，通过节点间相互ping的响应时间来确认节点的健康状态
+- 对所有可以成为master的节点（node.master: true）根据nodeId进行排序，nodeId最小的节点当选为主节点
+- 如果对某个节点的投票数达到一定的值（可以成为master的节点数量/2+1），且该节点自己也选举自己，则该节点当选为master节点，否则重复选举过程
+
 
 ## Logstash
 
