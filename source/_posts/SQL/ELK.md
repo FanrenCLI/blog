@@ -703,7 +703,7 @@ CreateIndexResponse createIndexResponse = client.indices().create(c -> c
 
 #### Elasticsearch的近实时(Near Real-Time, NRT)搜索
 
-Elasticsearch的**"近实时"(Near Real-Time, NRT)**搜索是其核心特性之一，指的是在文档被索引（写入）后，通常在非常短的时间内（默认为1秒）即可被搜索到。这并不是**绝对的实时**（即写入操作成功返回响应后*立即*就能查到），而是存在一个极其短暂的延迟。理解NRT的关键在于了解Elasticsearch底层的写入和刷新机制。
+Elasticsearch的"近实时"(Near Real-Time, NRT)搜索是其核心特性之一，指的是在文档被索引（写入）后，通常在非常短的时间内（默认为1秒）即可被搜索到。这并不是**绝对的实时**（即写入操作成功返回响应后*立即*就能查到），而是存在一个极其短暂的延迟。理解NRT的关键在于了解Elasticsearch底层的写入和刷新机制。
 
 1. **倒排索引与分段(Inverted Index & Segments)：**
    - Elasticsearch的索引实际上是由许多更小的、不可变的**Lucene索引**（称为**分段**）组成的。
