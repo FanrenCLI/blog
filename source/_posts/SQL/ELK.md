@@ -764,5 +764,59 @@ Elasticsearch的"近实时"(Near Real-Time, NRT)搜索是其核心特性之一�
 
 ## Kibana
 
+下载完成kibana后，在config目录下找到kibana.yml文件，修改如下配置：
+
+```yml
+server.port: 5601
+server.host: "0.0.0.0"
+elasticsearch.hosts: ["http://localhost:9200"]
+kibana.index: ".kibana"
+```
+
+启动kibana，访问http://localhost:5601，即可看到kibana的界面。
+
+![FileBeat实现日志采集](http://fanrencli.cn/fanrencli.cn/kibana2.png)
+
+随后打开开发工具-控制台即可对elasticsearch进行搜索查询
+
+![FileBeat实现日志采集](http://fanrencli.cn/fanrencli.cn/kibana1.png)
+
 
 ## FileBeat
+
+下载完成filebeat之后修改yml配置文件，主要配置如下：
+
+```yml
+# Filebeat配置文件 输入配置，其中type使用filestream替换log
+filebeat.inputs:
+- type: filestream
+
+  # Unique ID among all inputs, an ID is required.
+  id: my-filestream-id
+
+  # Change to true to enable this input configuration.
+  enabled: true
+
+  # Paths that should be crawled and fetched. Glob based paths.
+  paths:
+    - F:/Java_work/es/log/test.log
+
+# 配置输出到Elasticsearch
+output.elasticsearch:
+  # Array of hosts to connect to.
+  hosts: ["localhost:9200"]
+
+  # Performance preset - one of "balanced", "throughput", "scale",
+  # "latency", or "custom".
+  preset: balanced
+```
+
+启动filebeat,随后可以再kibana中查看到filebeat采集的日志信息，且实时可用
+
+```shell
+filebeat.exe -c filebeat.yml -e
+```
+
+![FileBeat实现日志采集](http://fanrencli.cn/fanrencli.cn/filebeats.png)
+
+![查看SpringBoot项目日志信息](http://fanrencli.cn/fanrencli.cn/filebeat1.png)
