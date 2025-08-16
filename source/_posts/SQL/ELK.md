@@ -797,11 +797,11 @@ kibana.index: ".kibana"
 
 启动kibana，访问http://localhost:5601，即可看到kibana的界面。
 
-![FileBeat实现日志采集](http://fanrencli.cn/fanrencli.cn/kibana2.png)
+![Kibana界面](http://fanrencli.cn/fanrencli.cn/kibana2.png)
 
 随后打开开发工具-控制台即可对elasticsearch进行搜索查询
 
-![FileBeat实现日志采集](http://fanrencli.cn/fanrencli.cn/kibana1.png)
+![控制台操作](http://fanrencli.cn/fanrencli.cn/kibana1.png)
 
 
 ## FileBeat
