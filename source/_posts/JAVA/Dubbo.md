@@ -213,16 +213,53 @@ java服务可以通过go语言进行调用，原理主要是通过protobuf来实
 
 SPI是java远程提供的一个动态加载接口实现类的机制，如果在一个项目中定义个一个接口User，但是根据引入的不同的子项目想要不同的实现，此时就可以采用SPI机制。在子项目中定义User的实现类，此时只需要在jar包中的这个路径下创建META-INF/services/com.example.MyService文件，文件内容为`com.example.MyServiceImpl`，我们想要的实现方式。在主项目中引入这个子项目后，通过`java.util.ServiceLoader`就可以加载到这个实现类。如果同时引入了多个子项目就可以加载多个实现类，类似于过滤器Filter就可以通过这种方式进行扩展。
 
+```java
+
+public interface Animal {
+ void run();
+}
+public class Cat implements Animal{
+ @Override
+ public void run() {
+      System.out.println("cat run");
+   }
+}
+
+public class Dog implements Animal {
+ @Override
+ public void run() {
+      System.out.println("dog run");
+   }
+}
+// 每次全量加载，一般JDBC就通过这种方式实现，提供接口，不同的jdbc实现类架加载
+public static void main(String[] s){
+	System.out.println("======this is SPI======");
+	ServiceLoader serviceLoader = ServiceLoader.load(Animal.class);
+	Iterator animals = serviceLoader.iterator();
+	while (animals.hasNext()) {
+		animals.next().run();
+	}
+}
+```
+
+在$MATE-INF/services$下创建$org.example.spi.Animal$文件
+```org.example.spi.Animal
+org.example.spi.Dog
+org.example.spi.Cat
+```
+
+
+
 - dubbo中的SPI：在dubbo中类似于jdk原生提供的spi机制，自己实现了一套SPI，以下给出案例，dubbo中Filter实现的方式也是相同的，但是dubbo时按需加载，jdk时全部加载
 
 在主项目中定义以下的接口：
 
 ```java
 // 假设这是一个Dubbo服务接口,默认的实现类是MyService2，如果在子项目中有实现类则可以选择使用使用子项目实现类
-@SPI("MyService2")
+@SPI("MyService")
 public interface MyService {
     @Override
-    public Result invoke(Invoker<?> invoker, Invocation invocation);
+    public Result invoke(Invoker invoker, Invocation invocation);
 }
 ```
 
@@ -232,7 +269,7 @@ public interface MyService {
 public class MyService2 implements MyService {
 
     @Override
-    public Result invoke(Invoker<?> invoker, Invocation invocation) throws RpcException {
+    public Result invoke(Invoker invoker, Invocation invocation) throws RpcException {
         // 在这里添加你自定义的过滤逻辑，比如打印日志、校验权限等
         // ...
         
@@ -248,7 +285,7 @@ public class MyService2 implements MyService {
 public class MyService3 implements MyService {
 
     @Override
-    public Result invoke(Invoker<?> invoker, Invocation invocation) throws RpcException {
+    public Result invoke(Invoker invoker, Invocation invocation) throws RpcException {
         // 在这里添加你自定义的过滤逻辑，比如打印日志、校验权限等
         // ...
         
@@ -266,22 +303,23 @@ public class MyService3 implements MyService {
 在项目的资源目录（如src/main/resourcesMETA-INF/dubbo/com.example.MyService）下创建文件
 
 ```txt
-MyService2=com.example.impl.MyService2
+MyService=com.example.impl.MyService2
 MyService3=com.example.impl.MyService3
 ```
 
-将子项目引入到主项目中，启动应用时就会加载多个实现类，可以代码实现选择哪个类，如果不主动选择，那就用默认类，我们可以用以下代码进行获取
+将子项目引入到主项目中，启动应用时根据@Activate注解的属性按条件加载多个实现类，如果没有注解，需要代码实现选择哪个类，
 ```java
 // 这个类加载器加载类的时候会读取@SPI的注解内容
-ExtensionLoader<MyService> loader = ExtensionLoader.getExtensionLoader(MyService.class);
-MyService service = loader.getDefaultExtension(); // 获取默认实现
+ExtensionLoader loader = ExtensionLoader.getExtensionLoader(MyService.class);
+MyService service = loader.getDefaultExtension(); // 获取@SPI默认实现
+MyService service = loader.getActivateExtension(); // 获取@Activate注解类实现
 // 或者
 MyService customService = loader.getExtension("MyService3"); // 根据名称获取特定实现
 ```
 
 - 使用@Activate注解实现Filter
 
-在实际开发中，常用的一种就是实现自定义的Filter,并自动注册到调用链中
+在实际开发中，常用的一种就是实现自定义的Filter,通过@Activate注解，启动时根据条件加载到对应的调用链中
 
 ```java
 // 使用@Activate注解激活过滤器，可以设置order属性决定执行顺序，condition属性用于条件激活等,注意如果设置了condition=false，那么就需要额外的配置了
@@ -289,7 +327,7 @@ MyService customService = loader.getExtension("MyService3"); // 根据名称获�
 public class MyCustomFilter implements Filter {
 
     @Override
-    public Result invoke(Invoker<?> invoker, Invocation invocation) throws RpcException {
+    public Result invoke(Invoker invoker, Invocation invocation) throws RpcException {
         // 在RPC调用前后添加你的自定义逻辑
         System.out.println("MyCustomFilter is being executed before the RPC call.");
         
@@ -304,22 +342,3 @@ public class MyCustomFilter implements Filter {
 在项目的资源目录（如src/main/resources/META-INF/dubbo/com.alibaba.dubbo.rpc.Filter）下创建文件
 ```txt
 myCustomFilter=your.package.name.MyCustomFilter
-```
-
-此处给出如果condition=false时需要的配置，有两种方式，代码实现和xml配置
-
-```java
-@Configuration
-@EnableDubbo
-@DubboComponentScan(basePackages = {"your.package.with.services"})
-public class DubboConfiguration {
-
-    // 全局启用自定义过滤器，假设filter名为myCustomFilter
-    @Bean
-    public ProviderConfig providerConfig() {
-        ProviderConfig provider = new ProviderConfig();
-        provider.setFilter("myCustomFilter");
-        return provider;
-    }
-}
-```
