@@ -25,6 +25,8 @@ ELK 是 Elasticsearch、Logstash、Kibana 的简称，它们都是开源软件�
 - **Kibana**：一个数据可视化工具，用于创建仪表板和可视化数据。它可以与 Elasticsearch 集成，提供丰富的数据可视化功能，帮助用户更好地理解数据。
 - **Beats**：轻量级的数据收集器，用于将数据发送到 Logstash 或 Elasticsearch。Beats 包括 Filebeat（用于收集日志文件）、Metricbeat（用于收集系统和服务指标）等。
 
+![ELK架构](http://fanrencli.cn/fanrencli.cn/ELK.png)
+
 ## ElasticSearch
 
 Elasticsearch 是一个分布式搜索和分析引擎，用于存储和搜索大量数据。它提供了全文搜索、结构化搜索、分析等功能。Elasticsearch 使用 JSON 格式存储数据，并使用倒排索引来加速搜索。所谓倒排索引，就是将文档中的每个词映射到包含该词的文档列表，通过查询关键词，可以快速找到包含该关键词的文档。
@@ -716,7 +718,7 @@ Elasticsearch的"近实时"(Near Real-Time, NRT)搜索是其核心特性之一�
    - **Step 3: Refresh - 创建新可搜索分段**：默认情况下，**每隔1秒**（可通过`index.refresh_interval`设置），Elasticsearch会执行一个**refresh操作**。
        - Refresh操作会：
           1. 将`In-Memory Buffer`中的内容清空。
-          2. 将这些文档**构建成一个新的、内存中的Lucene分段**。这个新的分段**还不在物理磁盘上持久化**。
+          2. 将这些文档**构建成一个新的、内存中的Lucene分段**。这个新的分段**还不在物理磁盘上持久化,只是存在文件系统缓存中**。
           3. 将这个新的内存分段打开(open)并添加到索引结构中的活跃分段列表中。
        - **关键点：** 一旦refresh完成，这个新创建的、内存中的分段就变得**可被搜索**了！这就是那"1秒"延迟的来源。新索引的文档要等到下一次refresh发生（最长1秒后）才能被搜索到。
        - Refresh是一个相对轻量级的操作（主要涉及内存和文件系统缓存），但过于频繁（比如设置为`1ms`）会显著增加集群开销。
@@ -757,10 +759,10 @@ Elasticsearch的"近实时"(Near Real-Time, NRT)搜索是其核心特性之一�
 
 ## Logstash
 
-## Logs
+
 
 
 ## Kibana
 
 
-## Beats
+## FileBeat
