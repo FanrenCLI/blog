@@ -724,7 +724,7 @@ Elasticsearch的**"近实时"(Near Real-Time, NRT)**搜索是其核心特性之�
        - 为了防止translog变得过大（重放时间长、占用磁盘空间），以及确保内存中的分段数据不会在节点故障时丢失，Elasticsearch会**定期（默认30min）（或当translog大小达到阈值时）**执行一个**flush操作**。
        - Flush操作会：
            1. 触发一次新的refresh（将当前内存buffer的内容刷新成一个新的内存段并使其可搜索）。
-           2. 将**所有当前内存中尚未持久化的分段(in-memory segments)****物理地写入（fsync）到磁盘**。
+           2. 将所有当前内存中尚未持久化的分段(in-memory segments)物理地写入（fsync）到磁盘。
            3. **清空(truncate) translog**，因为数据已经安全地写入到磁盘上了。旧的translog文件会被删除。
        - Flush是开销相对较大的I/O操作（涉及磁盘写入），通常由ES后台管理，默认设置比较合理。在节点恢复时会检查是否存在需要应用的translog（比如在最近一次flush之后写入的数据），如果有则重放。
 
@@ -738,7 +738,7 @@ Elasticsearch的**"近实时"(Near Real-Time, NRT)**搜索是其核心特性之�
 -  "近实时"(NRT)总结
 
 1. **写入返回 != 可搜：** 当索引操作的响应返回成功（通常是`HTTP 200`）时，表示文档已经安全地写入到translog（保证持久性），并存在于内存buffer（等待刷新）。
-2. **刷新触发可搜：** 文档需要等待下一次`refresh`操作（**默认间隔1秒**）将其包含在**新创建的内存分段(in-memory segment)**中，才能变得可搜索。
+2. **刷新触发可搜：** 文档需要等待下一次`refresh`操作（默认间隔1秒）将其包含在新创建的内存分段(in-memory segment)中，才能变得可搜索。
 3. **持久化异步：** 数据物理写入磁盘（通过fsync）发生在`flush`操作（自动触发，间隔比refresh长得多，比如30分钟或translog满512MB）或`merge`过程中。
    - index.translog.flush_threshold_size: "512mb"
    - index.translogflush_threshold_period: "30m"
