@@ -712,13 +712,13 @@ Elasticsearch的**"近实时"(Near Real-Time, NRT)**搜索是其核心特性之�
 
 2. **写入流程：内存 -> 分段 -> 可搜索**
    - **Step 1: 写入到In-Memory Buffer**：当你索引一个新文档时，它首先被写入到一个**内存中的缓冲区(In-Memory Buffer)**。此时文档还**不可被搜索**。
-   - **Step 2: 写入到Transaction Log(Translog)**：同时，操作会被追加写入到磁盘上的**Transaction Log(Translog)**中。这是一种持久化的预写日志（Write-Ahead Log）。**目的：** 确保即使发生硬件故障或节点崩溃，尚未写入磁盘的数据也不会丢失,`sync_interval`:默认1s，`index.translog.durability: "async"(如果是request，那么sync_interval不生效)`。在重启时，可以通过重放translog来恢复丢失的操作。
+   - **Step 2: 写入到Transaction Log(Translog)** :同时，操作会被追加写入到磁盘上的 `Transaction Log(Translog)`中。这是一种持久化的预写日志（Write-Ahead Log）。确保即使发生硬件故障或节点崩溃，尚未写入磁盘的数据也不会丢失,`sync_interval`:默认1s，`index.translog.durability: "async"(如果是request，那么sync_interval不生效)`。在重启时，可以通过重放translog来恢复丢失的操作。
    - **Step 3: Refresh - 创建新可搜索分段**：默认情况下，**每隔1秒**（可通过`index.refresh_interval`设置），Elasticsearch会执行一个**refresh操作**。
        - Refresh操作会：
           1. 将`In-Memory Buffer`中的内容清空。
           2. 将这些文档**构建成一个新的、内存中的Lucene分段**。这个新的分段**还不在物理磁盘上持久化**。
           3. 将这个新的内存分段**打开(open)**并添加到索引结构中的活跃分段列表中。
-       - **关键点：** 一旦refresh完成，这个新创建的、内存中的分段就变得**可被搜索**了！这就是那"1秒"延迟的来源。📌新索引的文档要等到下一次refresh发生（最长1秒后）才能被搜索到。
+       - **关键点：** 一旦refresh完成，这个新创建的、内存中的分段就变得**可被搜索**了！这就是那"1秒"延迟的来源。新索引的文档要等到下一次refresh发生（最长1秒后）才能被搜索到。
        - Refresh是一个相对轻量级的操作（主要涉及内存和文件系统缓存），但过于频繁（比如设置为`1ms`）会显著增加集群开销。
    - **Step 4: Flush - 段持久化**
        - 为了防止translog变得过大（重放时间长、占用磁盘空间），以及确保内存中的分段数据不会在节点故障时丢失，Elasticsearch会**定期（默认30min）（或当translog大小达到阈值时）**执行一个**flush操作**。
@@ -735,7 +735,7 @@ Elasticsearch的**"近实时"(Near Real-Time, NRT)**搜索是其核心特性之�
    - 合并优化索引结构、减少文件句柄消耗、提升查询效率。新合并的大分段在被写入磁盘后会替换掉旧的小分段，旧的小分段最终被删除。
    - 合并是资源密集型操作（CPU, I/O），主要在后台进行。
 
--  🕰️ "近实时"(NRT)总结
+-  "近实时"(NRT)总结
 
 1. **写入返回 != 可搜：** 当索引操作的响应返回成功（通常是`HTTP 200`）时，表示文档已经安全地写入到translog（保证持久性），并存在于内存buffer（等待刷新）。
 2. **刷新触发可搜：** 文档需要等待下一次`refresh`操作（**默认间隔1秒**）将其包含在**新创建的内存分段(in-memory segment)**中，才能变得可搜索。
@@ -748,7 +748,7 @@ Elasticsearch的**"近实时"(Near Real-Time, NRT)**搜索是其核心特性之�
    - **增大（如`30s`或`-1`完全禁用）**：提升索引写入吞吐量（更少refresh开销），适用于能接受更大搜索延迟的场景（如日志采集）。
    - 完全禁用refresh后，只能通过显式调用`POST /<index>/_refresh` API或等待flush发生（flush内部也会触发refresh）才能使新数据可搜索。
   
-Elasticsearch选举流程：
+#### Elasticsearch选举流程：
 - Elasticsearch的选举流程时ZenDiscovery模块负责的，主要包含：ping和unicast两个部分
 - ping阶段：节点通过节点间相互ping来确认节点是否存活，通过节点间相互ping的响应时间来确认节点的健康状态
 - 对所有可以成为master的节点（node.master: true）根据nodeId进行排序，nodeId最小的节点当选为主节点
