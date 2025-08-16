@@ -759,8 +759,30 @@ Elasticsearch的"近实时"(Near Real-Time, NRT)搜索是其核心特性之一�
 
 ## Logstash
 
+下载完成logstash后进行配置
 
+```yml
+# 再filebeat中配置logstash为输出目标
+output.logstash:
+  hosts: ["127.0.0.1:5044"]
+```
 
+在`logstash.yml`中配置logstash的总体配置，在`pipelines.yml`中配置输入输出,以下给出的是示例，但是实际配置需要结合具体的格式要求进行配置。
+
+```conf
+input {
+  beats {
+    port => 5044
+  }
+}
+
+output {
+  elasticsearch {
+    hosts => ["http://localhost:9200"]
+    index => "%{[@metadata][beat]}-%{[@metadata][version]}-%{+YYYY.MM.dd}" 
+  }
+}
+```
 
 ## Kibana
 
