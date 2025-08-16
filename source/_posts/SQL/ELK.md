@@ -711,7 +711,7 @@ Elasticsearch的**"近实时"(Near Real-Time, NRT)**搜索是其核心特性之�
    - 分段一旦创建，就不能再被修改（追加新文档或更新现有文档）。
 
 2. **写入流程：内存 -> 分段 -> 可搜索**
-   - **Step 1: 写入到In-Memory Buffer**：当你索引一个新文档时，它首先被写入到一个**内存中的缓冲区(In-Memory Buffer)**。此时文档还**不可被搜索**。
+   - **Step 1: 写入到In-Memory Buffer**：当你索引一个新文档时，它首先被写入到一个`内存中的缓冲区(In-Memory Buffer)`。此时文档还**不可被搜索**。
    - **Step 2: 写入到Transaction Log(Translog)** :同时，操作会被追加写入到磁盘上的 `Transaction Log(Translog)`中。这是一种持久化的预写日志（Write-Ahead Log）。确保即使发生硬件故障或节点崩溃，尚未写入磁盘的数据也不会丢失,`sync_interval`:默认1s，`index.translog.durability: "async"(如果是request，那么sync_interval不生效)`。在重启时，可以通过重放translog来恢复丢失的操作。
    - **Step 3: Refresh - 创建新可搜索分段**：默认情况下，**每隔1秒**（可通过`index.refresh_interval`设置），Elasticsearch会执行一个**refresh操作**。
        - Refresh操作会：
