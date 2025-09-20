@@ -727,41 +727,59 @@ binlog format:
 
 ### 主从架构搭建
 
-如果通过虚拟机搭建主从架构，注意事项：
-- MAC需要修改
-- IP地址需要修改
-- hostname需要修改
-- mysql的UUID需要修改（在文件中auto.cnf）
+搭建主从复制mysql集群首先需要两个MySQL数据库，本次实践通过宝塔的Docker应用进行创建，创建结果如下：
 
-1. 在主机mysql配置文件中，`[mysql]`节点下配置
+![宝塔数据库MySQL](http://fanrencli.cn/fanrencli.cn/mysql.png)
+
+1. 在master的`my.cnf`配置文件中，`[mysql]`节点下配置
 
 ```txt
+[mysqld]
+# 日志文件
+log-bin=mysql-bin
+# 服务id，唯一
 server-id=1
-log-bin=master-bin
+# 需要同步的数据库名称
+binlog-do-db=user_db
 ```
 
-2. 从机中同主机操作
+2. 重新启动master数据库
+
+3. 在master数据库中创建主从同步用户
 
 ```txt
+CREATE USER 'slave_user'@'%' IDENTIFIED BY 'slave_password';
+GRANT REPLICATION SLAVE ON *.* TO 'slave_user'@'%';
+FLUSH PRIVILEGES;
+```
+4. 查看master主服务器的状态
+
+```txt
+show master status;
+```
+
+5. 在slave的`my.cnf`配置文件中，`[mysql]`节点下配置
+
+```txt
+[mysqld]
 server-id=2
-relay-log=slave-bin
+relay-log=mysql-relay-bin
 ```
 
-3. 关闭防火墙或开放对应的端口
-
-4. 在主机中创建mysql用户，然后在主机中为这个用户进行授权，授主从复制的权限
-
-```sql
--- 查询主机状态，可以获取主机从哪个binlog日志的位置开始同步哪个数据库的数据
-show master status；
-```
-
-5. 从机执行以下命令
+6. 从机执行以下命令
 
 ```sql
 
 -- 日志名称和文件开始位置可以通过show master status进行查询
-change  master to MASTER_HOST='主机的地址',MASTER_USER='用户',MASTER_PASSWORD='密码',MASTER_LOG_FILE='日志文件名称',MASTER_LOG_POS='文件开始位置'
+CHANGE MASTER TO
+MASTER_HOST='主服务器IP',
+MASTER_USER='slave_user',
+MASTER_PASSWORD='slave_password',
+MASTER_LOG_FILE='记录的主服务器File',
+MASTER_LOG_POS=记录的主服务器Position;
+
+-- 启动从机同步
+start slave;
 
 -- 查询从机的状态
 show slave status;
