@@ -171,6 +171,11 @@ SQLStatement: MySQLInsertStatement(setAssignment=Optional.empty, onDuplicateKeyC
 Actual SQL: master ::: INSERT INTO t_user  ( uname )  VALUES (  ?  ) ::: [张三丰]
 ```
 
+#### 2.2 垂直分片
+
+
+
+
 ### 3. ShardingSphere-Proxy
 
 ShardingSphere-Proxy 是 Apache ShardingSphere 的第二个产品，它定位为透明化的数据库代理端，提供封装了数据库二进制协议的服务端版本，用于完成对异构语言的支持。 目前提供 MySQL 和 PostgreSQL 版本，它可以使用任何兼容 MySQL/PostgreSQL 协议的访问客户端（如：MySQL Command Client, MySQL Workbench, Navicat 等）操作数据，对 DBA 更加友好。
