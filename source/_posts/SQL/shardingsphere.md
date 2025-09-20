@@ -38,8 +38,138 @@ ShardingSphere-JDBC 是 Apache ShardingSphere 的第一个产品，也是 Apache
 
 #### 2.1 读写分离实践
 
+- 引入依赖
+
+```gradle
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '2.7.6'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.example'
+version = '0.0.1-SNAPSHOT'
+description = 'shardingsphere'
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation("com.baomidou:mybatis-plus-boot-starter:3.5.5")
+    implementation("org.apache.shardingsphere:shardingsphere-jdbc-core-spring-boot-starter:5.1.0")
+    compileOnly 'org.projectlombok:lombok'
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+    runtimeOnly 'mysql:mysql-connector-java'
+    annotationProcessor 'org.projectlombok:lombok'
+}
+```
+
+- 配置文件
+
+```application.properties
+# 应用名称
+spring.application.name=sharging-jdbc-demo
 
 
+# 配置真实数据源
+spring.shardingsphere.datasource.names=master,slave1
+
+# 配置第 1 个数据源
+spring.shardingsphere.datasource.master.type = com.zaxxer.hikari.HikariDataSource
+spring.shardingsphere.datasource.master.driver-class-name = com.mysql.cj.jdbc.Driver
+spring.shardingsphere.datasource.master.jdbc-url = jdbc:mysql://106.14.135.70:13306/user_db
+spring.shardingsphere.datasource.master.username=root
+spring.shardingsphere.datasource.master.password=123456
+
+# 配置第 2 个数据源
+spring.shardingsphere.datasource.slave1.type=com.zaxxer.hikari.HikariDataSource
+spring.shardingsphere.datasource.slave1.driver-class-name=com.mysql.cj.jdbc.Driver
+spring.shardingsphere.datasource.slave1.jdbc-url=jdbc:mysql://106.14.135.70:23306/user_db
+spring.shardingsphere.datasource.slave1.username=root
+spring.shardingsphere.datasource.slave1.password=123456
+
+
+# 读写分离类型，如: Static，Dynamic
+spring.shardingsphere.rules.readwrite-splitting.data-sources.myds.type=Static
+# 写数据源名称
+spring.shardingsphere.rules.readwrite-splitting.data-sources.myds.props.write-data-source-name=master
+# 读数据源名称，多个从数据源用逗号分隔
+spring.shardingsphere.rules.readwrite-splitting.data-sources.myds.props.read-data-source-names=slave1
+
+# 负载均衡算法名称
+spring.shardingsphere.rules.readwrite-splitting.data-sources.myds.load-balancer-name=alg_round
+
+# 负载均衡算法配置
+# 负载均衡算法类型
+spring.shardingsphere.rules.readwrite-splitting.load-balancers.alg_round.type=ROUND_ROBIN
+spring.shardingsphere.rules.readwrite-splitting.load-balancers.alg_random.type=RANDOM
+spring.shardingsphere.rules.readwrite-splitting.load-balancers.alg_weight.type=WEIGHT
+spring.shardingsphere.rules.readwrite-splitting.load-balancers.alg_weight.props.slave1=1
+
+# 打印SQl
+spring.shardingsphere.props.sql-show=true
+
+```
+
+- 代码实现
+
+```java
+
+@RestController("/test")
+public class testcontroller {
+
+    @Autowired
+    private UserMapper userMapper;
+
+    @GetMapping("/user/get")
+    public User get() {
+        return userMapper.selectById(1);
+    }
+
+    @PostMapping("/user/add")
+    public String add() {
+        User user = new User();
+        user.setUname("张三丰");
+        userMapper.insert(user);
+        return "ok";
+    }
+}
+
+// ===============================================================
+@TableName("t_user")
+@Data
+public class User {
+    @TableId(type = IdType.AUTO)
+    private Long id;
+    private String uname;
+}
+
+// ===============================================================
+@Mapper
+public interface UserMapper extends BaseMapper<User> {
+}
+
+// ===============================================================
+@SpringBootApplication(exclude = {H2ConsoleAutoConfiguration.class})
+@MapperScan("com.example.shardingsphere.mapper")
+public class ShardingsphereApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(ShardingsphereApplication.class, args);
+    }
+
+}
+
+```
+
+- 结果展示
+
+```txt
+Logic SQL: SELECT id,uname FROM t_user WHERE id=?
+SQLStatement: MySQLSelectStatement(table=Optional.empty, limit=Optional.empty, lock=Optional.empty, window=Optional.empty)
+Actual SQL: slave1 ::: SELECT id,uname FROM t_user WHERE id=? ::: [1]
+Logic SQL: INSERT INTO t_user  ( uname )  VALUES (  ?  )
+SQLStatement: MySQLInsertStatement(setAssignment=Optional.empty, onDuplicateKeyColumns=Optional.empty)
+Actual SQL: master ::: INSERT INTO t_user  ( uname )  VALUES (  ?  ) ::: [张三丰]
+```
 
 ### 3. ShardingSphere-Proxy
 
