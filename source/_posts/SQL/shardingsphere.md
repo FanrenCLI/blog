@@ -374,8 +374,6 @@ spring.shardingsphere.rules.sharding.broadcast-tables[0]=t_dict
 
 ```
 
-8. 运行结果
-
 
 ### 3. ShardingSphere-Proxy
 
