@@ -173,7 +173,208 @@ Actual SQL: master ::: INSERT INTO t_user  ( uname )  VALUES (  ?  ) ::: [张三
 
 #### 2.2 垂直分片
 
+1. 配置文件
 
+```properties
+
+# 应用名称
+spring.application.name=sharding-jdbc-demo
+# 环境设置
+spring.profiles.active=dev
+
+# 配置真实数据源
+spring.shardingsphere.datasource.names=server-user,server-order
+
+# 配置第 1 个数据源
+spring.shardingsphere.datasource.server-user.type=com.zaxxer.hikari.HikariDataSource
+spring.shardingsphere.datasource.server-user.driver-class-name=com.mysql.cj.jdbc.Driver
+spring.shardingsphere.datasource.server-user.jdbc-url=jdbc:mysql://106.14.135.70:13306/db_user
+spring.shardingsphere.datasource.server-user.username=root
+spring.shardingsphere.datasource.server-user.password=123456
+
+# 配置第 2 个数据源
+spring.shardingsphere.datasource.server-order.type=com.zaxxer.hikari.HikariDataSource
+spring.shardingsphere.datasource.server-order.driver-class-name=com.mysql.cj.jdbc.Driver
+spring.shardingsphere.datasource.server-order.jdbc-url=jdbc:mysql://106.14.135.70:13306/db_order
+spring.shardingsphere.datasource.server-order.username=root
+spring.shardingsphere.datasource.server-order.password=123456
+
+# 标准分片表配置（数据节点）
+# spring.shardingsphere.rules.sharding.tables.<table-name>.actual-data-nodes=值
+# 值由数据源名 + 表名组成，以小数点分隔。
+# <table-name>：逻辑表名
+spring.shardingsphere.rules.sharding.tables.t_user.actual-data-nodes=server-user.t_user
+spring.shardingsphere.rules.sharding.tables.t_order.actual-data-nodes=server-order.t_order
+
+
+# 打印SQL
+spring.shardingsphere.props.sql-show=true
+
+
+```
+
+2. 代码实现
+
+```java
+
+@SpringBootTest
+public class VerticalTest {
+
+    @Autowired
+    private OrderMapper orderMapper;
+
+    @Autowired
+    private UserMapper userMapper;
+
+    @Test
+    public void testInsert(){
+        User user = new User();
+        user.setUname("强哥");
+        userMapper.insert(user);
+
+        Order order = new Order();
+        order.setOrderNo("ATGUIGU001");
+        order.setUserId(user.getId());
+        order.setAmount(new BigDecimal(100));
+        orderMapper.insert(order);
+    }
+}
+
+// =============================================
+@TableName("t_order")
+@Data
+public class Order {
+    @TableId(type = IdType.AUTO)
+    private Long id;
+    private String orderNo;
+    private Long userId;
+    private BigDecimal amount;
+}
+
+// ==============================================
+
+@Mapper
+public interface OrderMapper extends BaseMapper<Order> {
+}
+
+```
+
+
+#### 2.3 水平分片
+
+1. 通用配置文件
+
+```properties
+#========================基本配置
+# 应用名称
+spring.application.name=sharging-jdbc-demo
+# 开发环境设置
+spring.profiles.active=dev
+# 内存模式
+spring.shardingsphere.mode.type=Memory
+# 打印SQl
+spring.shardingsphere.props.sql-show=true
+```
+
+2. 分片配置文件
+
+```properties
+#========================数据源配置
+# 配置真实数据源
+spring.shardingsphere.datasource.names=server-user,server-order0,server-order1
+
+
+# 配置第 1 个数据源
+spring.shardingsphere.datasource.server-user.type=com.zaxxer.hikari.HikariDataSource
+spring.shardingsphere.datasource.server-user.driver-class-name=com.mysql.cj.jdbc.Driver
+spring.shardingsphere.datasource.server-user.jdbc-url=jdbc:mysql://106.14.135.70:13306/db_user
+spring.shardingsphere.datasource.server-user.username=root
+spring.shardingsphere.datasource.server-user.password=123456
+
+# 配置第 2 个数据源
+spring.shardingsphere.datasource.server-order0.type=com.zaxxer.hikari.HikariDataSource
+spring.shardingsphere.datasource.server-order0.driver-class-name=com.mysql.cj.jdbc.Driver
+spring.shardingsphere.datasource.server-order0.jdbc-url=jdbc:mysql://106.14.135.70:13306/db_order
+spring.shardingsphere.datasource.server-order0.username=root
+spring.shardingsphere.datasource.server-order0.password=123456
+
+# 配置第 3 个数据源
+spring.shardingsphere.datasource.server-order1.type=com.zaxxer.hikari.HikariDataSource
+spring.shardingsphere.datasource.server-order1.driver-class-name=com.mysql.cj.jdbc.Driver
+spring.shardingsphere.datasource.server-order1.jdbc-url=jdbc:mysql://106.14.135.70:23306/db_order
+spring.shardingsphere.datasource.server-order1.username=root
+spring.shardingsphere.datasource.server-order1.password=123456
+```
+
+3. 分片规则配置文件
+
+```properties
+#========================标准分片表配置（数据节点配置）
+# spring.shardingsphere.rules.sharding.tables.<table-name>.actual-data-nodes=值
+# 值由数据源名 + 表名组成，以小数点分隔。多个表以逗号分隔，支持 inline 表达式。
+# <table-name>：逻辑表名
+spring.shardingsphere.rules.sharding.tables.t_user.actual-data-nodes=server-user.t_user
+spring.shardingsphere.rules.sharding.tables.t_order.actual-data-nodes=server-order$->{0..1}.t_order$->{0..1}
+```
+
+4. 水平分库配置
+
+```properties
+#------------------------分库策略
+# 分片列名称
+spring.shardingsphere.rules.sharding.tables.t_order.database-strategy.standard.sharding-column=user_id
+# 分片算法名称
+spring.shardingsphere.rules.sharding.tables.t_order.database-strategy.standard.sharding-algorithm-name=alg-inline-userid
+
+#------------------------分片算法配置
+# 行表达式分片算法
+# 分片算法类型
+spring.shardingsphere.rules.sharding.sharding-algorithms.alg-inline-userid.type=INLINE
+# 分片算法属性配置
+spring.shardingsphere.rules.sharding.sharding-algorithms.alg-inline-userid.props.algorithm-expression=server-order$->{user_id % 2}
+
+# 取模分片算法
+# 分片算法类型
+spring.shardingsphere.rules.sharding.sharding-algorithms.alg_mod.type=MOD
+# 分片算法属性配置
+spring.shardingsphere.rules.sharding.sharding-algorithms.alg_mod.props.sharding-count=2
+```
+
+5. 水平分表配置
+
+```properties
+#------------------------分表策略
+# 分片列名称
+spring.shardingsphere.rules.sharding.tables.t_order.table-strategy.standard.sharding-column=order_no
+# 分片算法名称
+spring.shardingsphere.rules.sharding.tables.t_order.table-strategy.standard.sharding-algorithm-name=alg-hash-mod
+
+
+#------------------------分片算法配置
+# 哈希取模分片算法
+# 分片算法类型
+spring.shardingsphere.rules.sharding.sharding-algorithms.alg-hash-mod.type=HASH_MOD
+# 分片算法属性配置
+spring.shardingsphere.rules.sharding.sharding-algorithms.alg-hash-mod.props.sharding-count=2
+
+```
+
+6. 运行结果
+
+![水平分片](http://fanrencli.cn/fanrencli.cn/shardingsphere3.png)
+
+7. 广播表
+
+```properties
+#数据节点可不配置，默认情况下，向所有数据源广播
+spring.shardingsphere.rules.sharding.tables.t_dict.actual-data-nodes=server-user.t_dict,server-order$->{0..1}.t_dict
+
+# 广播表
+spring.shardingsphere.rules.sharding.broadcast-tables[0]=t_dict
+
+```
+
+8. 运行结果
 
 
 ### 3. ShardingSphere-Proxy
