@@ -20,3 +20,17 @@ Influxdb是一个开源的时序数据库，由Go语言编写而成，由InfluxD
 - 灵活的数据模型：Influxdb使用一种称为TSM（Time Series Merge）的数据模型，可以高效地存储和查询时间序列数据。
 - 相比于Prometheus，Influxdb更适合存储和查询大量的时间序列数据，而Prometheus更适合存储和查询少量的时间序列数据。
 - 数据只写不改：Influxdb的数据只写不改，一般之用来存储表达某种状态的数据 ，比如温度、内存使用率、磁盘使用率等。
+
+### Influxdb行协议
+
+Influxdb使用一种称为行协议的格式来存储数据。行协议是一种简单的文本格式，用于表示时间序列数据。行协议的格式如下：
+
+- 测量名称:测量名称
+-  
+- 标签键值对（可选）:Tag Set
+- 字段键值对: Field Set
+- 时间戳（可选）:Timestamp
+
+``` xml
+<measurement>[,<tag_key>=<tag_value>[,<tag_key>=<tag_value>...]] <field_key>=<field_value>[,<field_key>=<field_value>...] <timestamp>
+``` 
