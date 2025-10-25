@@ -207,16 +207,17 @@ telegraf -config http://localhost:8086/api/v2/telegrafs/0xoX00oOx0xoX00o
 根据配置文件，我们向 InfluxDB 2.0 写入了数据，现在我们可以通过 InfluxDB 的 Web 界面来查看这些数据。写入的库为`test02`。通过UI界面查看数据：
 
 
-![启动详情](http://fanrencli.cn/fanrencli.cn/influxdb2.png)
+![数据查看](http://fanrencli.cn/fanrencli.cn/influxdb2.png)
 
 ### Prometheus & SCRAPERS
 
 相比于Telegraf，Prometheus 是一个更强大的监控工具，它支持多种数据源，包括 InfluxDB。因此Influxdb也相应的支持Prometheus的数据源格式，并且可以通过创建SCRAPERS任务，将Prometheus的数据源配置到InfluxDB中。但是要注意的时，想比于telegraf的推送模型，Prometheus是拉取模型，因此需要安装对应的插件暴露对应的接口，通过influxdb的scrapers任务进行拉取。
 
+![创建任务](http://fanrencli.cn/fanrencli.cn/influxdb3.png)
 
+其中主要关注URL，这个是需要我们自己暴露出来的接口（github有大量的开源项目，各种系统的性能指标都能找到对应的项目可以直接使用），保证这个接口满足Prometheus的数据格式，这样数据库中得到的数据就可以直接使用。此处不再重复演示。
 
-
-
+### influxdb数据管理
 
 
 
