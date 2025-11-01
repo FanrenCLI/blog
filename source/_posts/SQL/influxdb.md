@@ -194,9 +194,9 @@ Telegraf是一个开源的数据收集器，用于收集各种系统和应用程
 3. 启动 telegraf
 
 ```bash
-set INFLUX_TOKEN=YourAuthenticationToken
+set INFLUX_TOKEN=b7KquxwD8-m3MCLmlRtU_ON7HxGL4jFfVSsUZ8uc_BcO8rdyLTBWUS3UwOzvES7gzOSU8bKVluZFjLg76f1Q_A==
 # 指定服务器的配置文件
-telegraf -config http://localhost:8086/api/v2/telegrafs/0xoX00oOx0xoX00o
+telegraf -config http://106.14.135.70:8086/api/v2/telegrafs/0fb31283ade81000
 ```
 
 ![启动详情](http://fanrencli.cn/fanrencli.cn/influxdb1.png)
@@ -217,10 +217,170 @@ telegraf -config http://localhost:8086/api/v2/telegrafs/0xoX00oOx0xoX00o
 
 其中主要关注URL，这个是需要我们自己暴露出来的接口（github有大量的开源项目，各种系统的性能指标都能找到对应的项目可以直接使用），保证这个接口满足Prometheus的数据格式，这样数据库中得到的数据就可以直接使用。此处不再重复演示。
 
-### influxdb数据管理
+### influxdb数据模型
+
+```txt
+foodships,park_id=1,plant=Earth #_foodships=0 timestamp
+foodships,park_id=1,plant=Earth #_foodships=2 timestamp
+foodships,park_id=1,plant=Earth #_foodships=3 timestamp
+foodships,park_id=2,plant=Earth #_foodships=0 timestamp
+foodships,park_id=2,plant=Earth #_foodships=2 timestamp
+foodships,park_id=2,plant=Earth #_foodships=3 timestamp
+```
+
+上述的数据在influxdb中展示的形式为：
+
+```txt
+name: foodships
+tags: park_id=1,plant=Earth
+time                  #_foodships
+---------------------------------
+2022-07-05T08:00:00Z  0
+2022-07-05T08:00:00Z  2
+2022-07-05T08:00:00Z  3
 
 
+name: foodships
+tags: park_id=2,plant=Earth
+time                  #_foodships
+---------------------------------
+2022-07-05T08:00:00Z  0
+2022-07-05T08:00:00Z  2
+2022-07-05T08:00:00Z  3
+```
+
+通过这种形式的数据组织方式，通过measurements（度量）和tags（标签）的组合，可以方便的查询到对应的批量数据。同时也减少了数据的冗余，方便了数据的查询。在进行数据查询时，一般按照以下的操作方式：
+- 指定从哪个存储桶中查询数据（Bucket）
+- 指定数据的时间范围
+- 指定measurements,tag_set,field指定查询的具体序列
+
+从实现的形式上来看，其实measurements,tag,field都是倒排索引，通过数据查询id，然后通过id查询到具体的数据。
+此外，influxdb需要注意序列的数量，如果序列过多会导致读取和写入性能有明显的下降，因此标签必须为可以枚举穷尽的数据，否则会导致序列过多，从而影响性能。
 
 
+### influxdb操作API
+
+- 引入依赖
+
+```gradle
+implementation "com.influxdb:influxdb-client-java:6.6.0"
+```
+
+- 配置文件
+
+```yaml
+spring:
+  application:
+    name: influxdb
+
+influx:
+  token: fLEwngJ4Su0bzgdYE4ZMmyjKt1jiAMTxEYRuQ0Eu7haQ6wablzO0Z3yjZ7GE8bkqC8TaiY3GBj5bwz9q6STwQQ==
+  url: http://106.14.135.70:8086
+  bucket: test03
+  org: fanrencli
+```
+
+- 创建配置类
+
+```java
+package com.example.influxdb;
+
+import com.influxdb.client.InfluxDBClient;
+import com.influxdb.client.InfluxDBClientFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class influxdbConfig {
+    @Value("${influx.token}")
+    private String token;
+    @Value("${influx.url}")
+    private String url;
+    @Value("${influx.org}")
+    private String org;
+    @Value("${influx.bucket}")
+    private String bucket;
+
+    @Bean
+    public InfluxDBClient influxDBClient() {
+        return InfluxDBClientFactory.create(url, token.toCharArray(), org, bucket);
+    }
+ 
+}
+```
+
+- API测试
+
+```java
+package com.example.influxdb;
+
+import com.influxdb.annotations.Column;
+import com.influxdb.client.InfluxDBClient;
+import com.influxdb.client.WriteApiBlocking;
+import com.influxdb.client.domain.WritePrecision;
+import com.influxdb.client.write.Point;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+
+import java.time.Instant;
+
+@SpringBootTest
+class InfluxdbApplicationTests {
 
 
+    public static class DemoObject {
+        @Column(measurement = true)
+        private String measurment;
+        @Column(tag = true)
+        private String locaion;
+        @Column
+        private Double value;
+        @Column(timestamp = true)
+        private Instant timestamp;
+
+        public DemoObject(String measurment, String locaion, Double value, Instant timestamp) {
+            this.measurment = measurment;
+            this.locaion = locaion;
+            this.value = value;
+            this.timestamp = timestamp;
+        }
+    }
+
+    @Autowired
+    private InfluxDBClient client;
+
+    @Test
+    void contextLoads() {
+        String data = "mem,host=host1 used_percent=23.43234543";
+
+        WriteApiBlocking writeApi = client.getWriteApiBlocking();
+        // 通过字符串手动构建行协议
+        writeApi.writeRecord(WritePrecision.MS, "temperature,location=SH value=50");
+
+        // 通过point构造入参
+        Point point = Point.measurement("temperature")
+                .addTag("location", "SH")
+                .addField("value", 70.0)
+                .time(Instant.now(), WritePrecision.MS);
+        writeApi.writePoint(point);
+        // 通过自定义对象构造入参
+        new DemoObject("temperature","SH",100.0,Instant.now());
+        client.close();
+    }
+    @Test
+    void contextLoads() {
+        String data = "mem,host=host1 used_percent=23.43234543";
+
+        // 异步写入的逻辑，开启线程池
+        WriteOptions writeOptions = WriteOptions.builder().batchSize(100).build();
+        WriteApi writeApi = client.makeWriteApi(writeOptions);
+        // 将数据写入缓冲区，线程池每隔1s处理一次
+        writeApi.writeRecord(WritePrecision.MS, "temperature,location=SH value=50");
+        // 清空缓存，将所有数据写入
+        writeApi.flush();
+        client.close();
+    }
+}
+```
