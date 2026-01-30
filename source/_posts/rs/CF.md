@@ -1,6 +1,8 @@
 ---
 title: Collaborative Filtering
 date: 2025-09-20 12:58:00
+mathjax: true
+markup: mmark
 cover: true
 top: true
 categories:
@@ -32,24 +34,6 @@ author: Fanrencli
 
 Jaccard 系数是衡量两个集合的相似度一种指标，计算公式如下：
 
-$$Matrix_{lowfrequency}=
-{1\over \sqrt{2}}
-\begin{pmatrix}
-1&1&0&\cdots&\cdots&0\\\\
-0&0&1&1&\cdots&0\\\\
-\vdots&\vdots&\vdots&\vdots&\vdots&\vdots&\\\\
-0&\cdots&\cdots&0&1&1\\\\
-\end{pmatrix}（n*{n\over 2}）
-$$
-$$Matrix_{highfrequency}=
-{1\over \sqrt{2}}
-\begin{pmatrix}
-1&-1&0&\cdots&\cdots&0\\\\
-0&0&1&-1&\cdots&0\\\\
-\vdots&\vdots&\vdots&\vdots&\vdots&\vdots&\\\\
-0&\cdots&\cdots&0&1&-1\\\\
-\end{pmatrix}（n*{n\over 2}）
-$$
 $$sim_{uv}=\frac{|N(u) \cap N(v)|}{|N(u) \cup N(v)|}$$
 
 - 其中$N(u)$，$N(v)$分别表示用户$u$和用户$v$交互物品的集合。
