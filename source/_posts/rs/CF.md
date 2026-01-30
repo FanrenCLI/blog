@@ -1,10 +1,10 @@
 ---
-title: Recommender System
+title: Collaborative Filtering
 date: 2025-09-20 12:58:00
 cover: true
 top: true
 categories:
-  - Collaborative Filtering
+  - Recommender System
 tags:
   - RS
   - ReCall
@@ -31,9 +31,10 @@ author: Fanrencli
 1. 杰卡德（Jaccard）相似系数
 
 Jaccard 系数是衡量两个集合的相似度一种指标，计算公式如下：
-$$ sim_{uv} = \frac{|N(u) \cap N(v)|}{|N(u) \cup N(v)|} $$
 
-- 其中 $N(u)$，$N(v)$分别表示用户$u$和用户$v$交互物品的集合。
+$$sim_{uv}=\frac{|N(u) \cap N(v)|}{|N(u) \cup N(v)|}$$
+
+- 其中$N(u)$，$N(v)$分别表示用户$u$和用户$v$交互物品的集合。
 - 对于用户$u$和$v$，该公式反映了两个交互物品交集的数量占这两个用户交互物品并集的数量的比例。
 
 由于杰卡德相似系数一般无法反映具体用户的评分喜好信息，所以常用来评估用户是否会对某物品进行打分， 而不是预估用户会对某物品打多少分。
@@ -43,7 +44,7 @@ $$ sim_{uv} = \frac{|N(u) \cap N(v)|}{|N(u) \cup N(v)|} $$
 
 余弦相似度衡量了两个向量的夹角，夹角越小越相似。余弦相似度的计算如下，其与杰卡德（Jaccard）相似系数只是在分母上存在差异：
 
-$$ sim_{uv}=\frac{|N(u)\cap N(v)|}{\sqrt{|N(u)|\cdot|N(v)|}} $$
+$$sim_{uv}=\frac{|N(u)\cap N(v)|}{\sqrt{|N(u)|\cdot|N(v)|}}$$
 
 从向量的角度进行描述，令矩阵 $A$ 为用户-物品交互矩阵，矩阵的行表示用户，列表示物品。
 
@@ -51,9 +52,9 @@ $$ sim_{uv}=\frac{|N(u)\cap N(v)|}{\sqrt{|N(u)|\cdot|N(v)|}} $$
 - 矩阵中的元素均为 $0/1$。若用户 $i$ 对物品 $j$ 存在交互，那么 $A_{i,j}=1$，否则为 $0$。
 - 那么，用户之间的相似度可以表示为：
 
-$$ sim_{uv}=cos(u,v)=\frac{u\cdot v}{|u|\cdot|v|} $$
+$$sim_{uv}=cos(u,v)=\frac{u \cdot v}{|u|\cdot|v|}$$
 
-- 向量 $u$，$v$ 在形式都是 one-hot 类型，$u \cdot v$ 表示向量点积。
+- 向量 $u$，$v$ 在形式都是 one-hot 类型，$u\cdot v$ 表示向量点积。
 
 上述用户-物品交互矩阵在现实中是十分稀疏的，为了节省内存，交互矩阵会采用字典进行存储。在 sklearn 中，余弦相似度的实现：
 ``` python
@@ -68,13 +69,13 @@ cosine_similarity([i, j])
 
 在用户之间的余弦相似度计算时，将用户向量的内积展开为各元素乘积和：
 
-$$ sim_{uv}=\frac{\sum_{i}r_{ui} * r_{vi}}{\sqrt{\sum_{i}r_{ui}^{2}}\sqrt{\sum_{i}r_{vi}^{2}}} $$
+$$sim_{uv}=\frac{\sum_{i}r_{ui} * r_{vi}}{\sqrt{\sum_{i}r_{ui}^{2}}\sqrt{\sum_{i}r_{vi}^{2}}}$$
 
 - 其中，$r_{ui}$，$r_{vi}$ 分别表示用户 $u$ 和用户 $v$ 对物品 $i$ 是否有交互（或具体评分值）。
 
 皮尔逊相关系数与余弦相似度的计算公式非常类似，如下：
 
-$$ sim(u,v)=\frac{\sum_{i\in I}(r_{ui}-\bar{r}_{u})(r_{vi}-\bar{r}_{v})}{\sqrt{\sum_{i\in I}(r_{ui}-\bar{r}_{u})^{2}}\sqrt{\sum_{i\in I}(r_{vi}-\bar{r}_{v})^{2}}} $$
+$$sim(u,v)=\frac{\sum_{i\in I}(r_{ui}-\bar{r}_{u})(r_{vi}-\bar{r}_{v})}{\sqrt{\sum_{i\in I}(r_{ui}-\bar{r}_{u})^{2}}\sqrt{\sum_{i\in I}(r_{vi}-\bar{r}_{v})^{2}}}$$
 
 - 其中，$r_{ui}$，$r_{vi}$ 分别表示用户 $u$ 和用户 $v$ 对物品 $i$ 是否有交互（或具体评分值）；
 - $\bar{r}_{u}$，$\bar{r}_{v}$ 分别表示用户 $u$ 和用户 $v$ 交互的所有物品交互数量或者评分的平均值；
