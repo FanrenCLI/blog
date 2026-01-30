@@ -77,7 +77,7 @@ $$sim_{uv}=\frac{\sum_{i}r_{ui} * r_{vi}}{\sqrt{\sum_{i}r_{ui}^{2}}\sqrt{\sum_{i
 
 皮尔逊相关系数与余弦相似度的计算公式非常类似，如下：
 
-$$sim(u,v)=\frac{\sum_{i}r_{ui} * r_{vi}}{\sqrt{\sum_{i}r_{ui}^{2}}\sqrt{\sum_{i}r_{vi}^{2}}}$$
+$$sim(u,v)=\frac{\sum_{i \in I}r_{ui} - \bar{r}_u}{\sqrt{\sum_{i}r_{ui}^{2}}\sqrt{\sum_{i}r_{vi}^{2}}}$$
 
 - 其中，$r_{ui}$，$r_{vi}$ 分别表示用户 $u$ 和用户 $v$ 对物品 $i$ 是否有交互（或具体评分值）；
 - $\bar{r}_u$，$\bar{r}_v$ 分别表示用户 $u$ 和用户 $v$ 交互的所有物品交互数量或者评分的平均值；
