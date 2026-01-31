@@ -1,5 +1,5 @@
 ---
-title: Collaborative Filtering
+title: Weight of Life
 date: 2026-1-31 12:58:00
 cover: true
 top: true
