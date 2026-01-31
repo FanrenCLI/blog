@@ -3,8 +3,6 @@ title: Collaborative Filtering
 date: 2025-09-20 12:58:00
 mathjax: true
 markup: mmark
-cover: true
-top: true
 categories:
   - Recommender System
 tags:

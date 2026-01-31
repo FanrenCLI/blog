@@ -1,8 +1,6 @@
 ---
 title: Recommender System
 date: 2025-09-20 12:58:00
-cover: true
-top: true
 categories:
   - introduction
 tags:
